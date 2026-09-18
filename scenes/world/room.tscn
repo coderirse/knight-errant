@@ -9,22 +9,21 @@ texture = ExtResource("2_mbd2a")
 1:0/0 = 0
 2:0/0 = 0
 2:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
-3:0/0 = 0
 
 [sub_resource type="TileSet" id="TileSet_xqgxa"]
 physics_layer_0/collision_layer = 1
 physics_layer_0/collision_mask = 0
 sources/0 = SubResource("TileSetAtlasSource_b4nb6")
 
-[node name="Room" type="Node2D" unique_id=1551899612]
+[node name="Room" type="Node2D" unique_id=1342054366]
 script = ExtResource("1_7lhff")
 
-[node name="Terrain" type="Node2D" parent="." unique_id=808302222]
+[node name="Terrain" type="Node2D" parent="." unique_id=346419322]
 
-[node name="Ground" type="TileMapLayer" parent="Terrain" unique_id=1258202634]
+[node name="Ground" type="TileMapLayer" parent="Terrain" unique_id=1081471120]
 tile_set = SubResource("TileSet_xqgxa")
 
-[node name="Actors" type="Node2D" parent="." unique_id=426443014]
+[node name="Actors" type="Node2D" parent="." unique_id=212512794]
 y_sort_enabled = true
 
-[node name="Projectiles" type="Node2D" parent="." unique_id=1478886619]
+[node name="Projectiles" type="Node2D" parent="." unique_id=11658714]

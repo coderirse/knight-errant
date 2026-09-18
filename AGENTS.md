@@ -63,7 +63,6 @@ $GODOT --headless --path . res://tools/test_run.tscn
 
 ```bash
 $GODOT --headless --path . --script res://tools/setup_project.gd
-$GODOT --headless --path . --script res://tools/generate_placeholder_art.gd
 $GODOT --headless --path . --script res://tools/build_scenes.gd
 ```
 
@@ -111,9 +110,9 @@ $GODOT --headless --path . --export-release "Windows Desktop" build/KnightErrant
 | `scenes/ui/main_menu.tscn` |
 
 在编辑器里手改过上面任何一个，再跑这个脚本改动就没了，**且没有任何警告**。
-`generate_placeholder_art.gd` 同理，覆盖 `assets/placeholder/` 下全部 png。
 
 生成器是脚手架。一旦开始手工搭房间，就该按它头部注释说的**把脚本删掉、转为手改场景**。
+（占位图生成器 `generate_placeholder_art.gd` 已在 2026-09-18 素材替换后删除。）
 
 ### 手改 `.tscn` 的坑
 

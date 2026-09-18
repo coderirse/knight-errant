@@ -9,13 +9,12 @@ texture = ExtResource("2_0h38q")
 1:0/0 = 0
 2:0/0 = 0
 2:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
-3:0/0 = 0
 
 [sub_resource type="TileSet" id="TileSet_xqgxa"]
 physics_layer_0/collision_layer = 1
 physics_layer_0/collision_mask = 0
 sources/0 = SubResource("TileSetAtlasSource_b4nb6")
 
-[node name="Level" type="Node2D" unique_id=1382204363]
+[node name="Level" type="Node2D" unique_id=917307242]
 script = ExtResource("1_o1x13")
 tile_set = SubResource("TileSet_xqgxa")

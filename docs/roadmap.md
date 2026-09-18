@@ -68,7 +68,7 @@ knight-errant/
 │  │              pickup.gd · camera_rig.gd
 │  ├─ ui/         hud.gd · minimap.gd · main_menu.gd
 │  └─ debug/      debug_overlay.gd · tuning_panel.gd
-└─ tools/         setup_project · build_scenes · generate_placeholder_art · test_gameplay · test_run
+└─ tools/         setup_project · build_scenes · test_gameplay · test_run
 ```
 
 **autoload 一共 8 个，权威清单是 `tools/setup_project.gd` 的 `AUTOLOADS`**（顺序即注册
@@ -493,9 +493,8 @@ $GODOT --headless --path . res://tools/test_run.tscn
 # 启动游戏
 $GODOT --path .
 
-# 重新生成配置 / 占位图 / 武器与场景
+# 重新生成配置 / 武器与场景
 $GODOT --headless --path . --script res://tools/setup_project.gd
-$GODOT --headless --path . --script res://tools/generate_placeholder_art.gd
 $GODOT --headless --path . --script res://tools/build_scenes.gd
 ```
 

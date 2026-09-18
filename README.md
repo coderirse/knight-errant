@@ -47,6 +47,8 @@
 - **房间地形**：9 张手搭模板（固定 15/21/25 尺寸），带不变量自检
 - **氛围**：压暗环境光 + 玩家随身灯 + 每房间 2~4 个火把 + 墙体实时投影；
   远离玩家的房间自动关灯（实测这个规模下灯光不是帧率瓶颈）
+- **美术**：角色 / 敌人 / BOSS / 宝箱 / 地形来自 0x72 DungeonTileset II（CC0），
+  房间之间的未开挖岩体压成近黑，火把光池贴着砖墙读得出层次
 - **自动化测试**：2 套件 182 项断言，含"跨 60 个种子验证楼层必定可通关"、
   "场景切换入口不会黑屏"、"敌人不会生在墙里"、
   "真实入口驱动清房→宝箱→BOSS→过层连打 3 层不用重启"
@@ -65,9 +67,8 @@ $GODOT --headless --path . res://tools/test_run.tscn
 # 启动游戏
 $GODOT --path .
 
-# 重新生成配置 / 占位图 / 武器与场景
+# 重新生成配置 / 武器与场景
 $GODOT --headless --path . --script res://tools/setup_project.gd
-$GODOT --headless --path . --script res://tools/generate_placeholder_art.gd
 $GODOT --headless --path . --script res://tools/build_scenes.gd
 
 # 导出 Windows exe（单文件 109 MB，已验证可独立运行）
@@ -102,8 +103,9 @@ docs/               roadmap.md（技术路线） · open-source.md（素材与�
 
 ## 注意事项
 
-- `assets/placeholder/` 是程序生成的占位图，请整体替换。
-  选素材认准 **top-down / 4-directional** 标签，横版素材套俯视角会很怪。
+- 角色与地形素材来自 **0x72 DungeonTileset II**（CC0，免费商用无需署名），
+  在 `assets/placeholder/` 下保持原占位图文件名替换；子弹与武器图标仍是自绘。
+  选新素材认准 **top-down / 4-directional** 标签，横版素材套俯视角会很怪。
 - 房间地形来自 `scripts/world/room_template_library.gd` 的 9 张 ASCII 模板。
   加一张模板只需往表里追加一条，但**必须保持外圈留空、内部全连通**——
   测试会校验这两条。

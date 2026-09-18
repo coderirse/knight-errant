@@ -9,10 +9,31 @@
 
 ---
 
-## 0. 本项目要替换的是什么
+## 0. 替换状态（2026-09-18 已完成第一轮）
 
-素材只有一处：**`assets/placeholder/`**，14 张 PNG，全部由
-[tools/generate_placeholder_art.gd](../tools/generate_placeholder_art.gd) 程序生成。
+已按"保持文件名、直接覆盖 PNG"的策略引入 **0x72 DungeonTileset II v1.7**（CC0）：
+
+| 文件 | 来源帧 | 备注 |
+|---|---|---|
+| `player.png` | `knight_m_run_anim_f0` | 16×28，静帧；动画是后续工作 |
+| `chaser.png` | `tiny_zombie_run_anim_f0` | 16×16 |
+| `shooter.png` | `wizzard_m_idle_anim_f0` | 16×28 |
+| `boss.png` | `big_demon_idle_anim_f0` | 32×36，`boss.tscn` 缩放 1.5× |
+| `chest.png` | `chest_full_open_anim_f0` | 闭合帧 |
+| `tile_ground.png` | `floor_1 / floor_2 / wall_mid` 拼成 48×16 三格条 | 对应瓦片集 atlas (0,0)(1,0)(2,0) |
+
+仍未替换（自绘保留）：`bullet.png` · `enemy_bullet.png`（弹道有 `bullet_tint` 可调色）、
+`gun_pistol.png` · `gun_shotgun.png` · `sword.png`（§2.3 的缺口，见下）。
+`portal.png` / `coin.png` / `heart.png` / `energy_orb.png` 当前**无代码引用**（HUD 用 ColorRect），
+未替换。占位图生成器 `tools/generate_placeholder_art.gd` 已删除。
+替换当轮发现的坑：瓦片集生成器曾声明 4 个 atlas 瓦片而新条只有 3 格，运行时报
+`no tile at (3,0)`——生成器表与贴图条数必须一致。
+
+---
+
+## 0.1 原始清单（替换前的规划，保留备查）
+
+**替换的是什么**：`assets/placeholder/`，14 张 PNG。
 节点结构与碰撞形状跟贴图解耦，所以替换是**纯美术改动**。
 
 | 占位图 | 需要什么 | 去哪拿 |

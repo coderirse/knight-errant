@@ -162,27 +162,27 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
-[node name="MainMenu" type="Control" unique_id=887482013]
+[node name="MainMenu" type="Control" unique_id=1000491402]
 layout_mode = 3
 anchors_preset = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("1_sl1te")
 
-[node name="Background" type="ColorRect" parent="." unique_id=1535942325]
+[node name="Background" type="ColorRect" parent="." unique_id=1681201832]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0.06, 0.06, 0.1, 1)
 
-[node name="Band" type="ColorRect" parent="." unique_id=143201176]
+[node name="Band" type="ColorRect" parent="." unique_id=1113356797]
 layout_mode = 0
 offset_left = 120.0
 offset_right = 360.0
 offset_bottom = 270.0
 color = Color(0.09, 0.1, 0.16, 1)
 
-[node name="Accent" type="ColorRect" parent="." unique_id=525316492]
+[node name="Accent" type="ColorRect" parent="." unique_id=603516212]
 layout_mode = 0
 offset_left = 200.0
 offset_top = 66.0
@@ -190,7 +190,7 @@ offset_right = 280.0
 offset_bottom = 68.0
 color = Color(0.95, 0.75, 0.25, 1)
 
-[node name="Title" type="Label" parent="." unique_id=529801377]
+[node name="Title" type="Label" parent="." unique_id=328814374]
 layout_mode = 0
 offset_top = 24.0
 offset_right = 480.0
@@ -200,7 +200,7 @@ theme_override_colors/font_color = Color(0.9, 0.93, 1, 1)
 text = "KNIGHT ERRANT"
 horizontal_alignment = 1
 
-[node name="Subtitle" type="Label" parent="." unique_id=1274705765]
+[node name="Subtitle" type="Label" parent="." unique_id=1313867004]
 layout_mode = 0
 offset_top = 72.0
 offset_right = 480.0
@@ -210,7 +210,7 @@ theme_override_colors/font_color = Color(0.5, 0.55, 0.7, 1)
 text = "TWIN-STICK DUNGEON PROTOTYPE"
 horizontal_alignment = 1
 
-[node name="Stats" type="Label" parent="." unique_id=1837116377]
+[node name="Stats" type="Label" parent="." unique_id=1016220688]
 unique_name_in_owner = true
 layout_mode = 0
 offset_top = 94.0
@@ -220,7 +220,7 @@ theme_override_font_sizes/font_size = 10
 theme_override_colors/font_color = Color(0.62, 0.67, 0.82, 1)
 horizontal_alignment = 1
 
-[node name="ButtonPanel" type="Panel" parent="." unique_id=859993590]
+[node name="ButtonPanel" type="Panel" parent="." unique_id=11469011]
 layout_mode = 0
 offset_left = 146.0
 offset_top = 128.0
@@ -228,7 +228,7 @@ offset_right = 334.0
 offset_bottom = 238.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_fe2o3")
 
-[node name="Buttons" type="VBoxContainer" parent="ButtonPanel" unique_id=2050267589]
+[node name="Buttons" type="VBoxContainer" parent="ButtonPanel" unique_id=538949789]
 layout_mode = 0
 offset_left = 14.0
 offset_top = 10.0
@@ -236,7 +236,7 @@ offset_right = 174.0
 offset_bottom = 100.0
 theme_override_constants/separation = 6
 
-[node name="StartButton" type="Button" parent="ButtonPanel/Buttons" unique_id=492174225]
+[node name="StartButton" type="Button" parent="ButtonPanel/Buttons" unique_id=2142407985]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(160, 26)
 layout_mode = 2
@@ -251,7 +251,7 @@ theme_override_colors/font_hover_color = Color(1, 0.96, 0.85, 1)
 theme_override_font_sizes/font_size = 13
 text = "New Run"
 
-[node name="ShopButton" type="Button" parent="ButtonPanel/Buttons" unique_id=697514731]
+[node name="ShopButton" type="Button" parent="ButtonPanel/Buttons" unique_id=552114646]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(160, 26)
 layout_mode = 2
@@ -266,7 +266,7 @@ theme_override_colors/font_hover_color = Color(1, 0.96, 0.85, 1)
 theme_override_font_sizes/font_size = 13
 text = "Upgrades"
 
-[node name="QuitButton" type="Button" parent="ButtonPanel/Buttons" unique_id=237306587]
+[node name="QuitButton" type="Button" parent="ButtonPanel/Buttons" unique_id=1693801700]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(160, 26)
 layout_mode = 2
@@ -281,7 +281,7 @@ theme_override_colors/font_hover_color = Color(1, 0.96, 0.85, 1)
 theme_override_font_sizes/font_size = 13
 text = "Quit"
 
-[node name="Hint" type="Label" parent="." unique_id=307866039]
+[node name="Hint" type="Label" parent="." unique_id=784230671]
 layout_mode = 0
 offset_top = 242.0
 offset_right = 555.0

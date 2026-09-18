@@ -92,8 +92,10 @@ func _build_tile_set() -> TileSet:
 	var atlas := TileSetAtlasSource.new()
 	atlas.texture = load(TILE_TEXTURE) as Texture2D
 	atlas.texture_region_size = Vector2i(TILE, TILE)
-	# Four tiles in a row: floor, floor variant, wall, wall top.
-	for i in 4:
+	# Three tiles in a row: floor, floor variant, wall. The strip only has what
+	# Room._build_tiles() stamps (see Room.FLOOR_TILE / FLOOR_VARIANT_TILE /
+	# WALL_TILE) — a fourth slot used to exist and went stale with the art swap.
+	for i in 3:
 		atlas.create_tile(Vector2i(i, 0))
 
 	var tile_set := TileSet.new()

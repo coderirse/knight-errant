@@ -114,6 +114,10 @@ func _setup_window() -> void:
 	ProjectSettings.set_setting("rendering/anti_aliasing/quality/msaa_2d", 0)
 	ProjectSettings.set_setting("rendering/2d/snap/snap_2d_transforms_to_pixel", false)
 	ProjectSettings.set_setting("rendering/2d/snap/snap_2d_vertices_to_pixel", false)
+	# The rock between rooms is whatever the viewport clears to. Engine-default
+	# grey read as "unfinished"; near-black reads as unexcavated stone.
+	ProjectSettings.set_setting("rendering/environment/defaults/default_clear_color",
+		Color(0.05, 0.05, 0.08))
 
 
 func _setup_physics() -> void:
