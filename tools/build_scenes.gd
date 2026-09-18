@@ -248,46 +248,83 @@ func _build_main_menu() -> void:
 
 	var background := ColorRect.new()
 	background.name = "Background"
-	background.color = Color(0.07, 0.07, 0.11)
+	background.color = Color(0.06, 0.06, 0.10)
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_child(background)
+
+	# A faint band behind the centre column, so the text blocks read as one
+	# composition instead of floating labels on flat black.
+	var band := ColorRect.new()
+	band.name = "Band"
+	band.color = Color(0.09, 0.10, 0.16)
+	band.position = Vector2(120, 0)
+	band.size = Vector2(240, 270)
+	root.add_child(band)
+
+	var accent := ColorRect.new()
+	accent.name = "Accent"
+	accent.color = Color(0.95, 0.75, 0.25)
+	accent.position = Vector2(200, 66)
+	accent.size = Vector2(80, 2)
+	root.add_child(accent)
 
 	var title := Label.new()
 	title.name = "Title"
 	title.text = "KNIGHT ERRANT"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 40)
+	title.add_theme_font_size_override("font_size", 32)
 	title.add_theme_color_override("font_color", Color(0.90, 0.93, 1.0))
-	title.position = Vector2(0, 34)
-	title.size = Vector2(480, 54)
+	title.position = Vector2(0, 24)
+	title.size = Vector2(480, 42)
 	root.add_child(title)
 
 	var subtitle := Label.new()
 	subtitle.name = "Subtitle"
-	subtitle.text = "twin-stick dungeon prototype"
+	subtitle.text = "TWIN-STICK DUNGEON PROTOTYPE"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.add_theme_font_size_override("font_size", 13)
-	subtitle.add_theme_color_override("font_color", Color(0.55, 0.60, 0.75))
-	subtitle.position = Vector2(0, 84)
-	subtitle.size = Vector2(480, 20)
+	subtitle.add_theme_font_size_override("font_size", 10)
+	subtitle.add_theme_color_override("font_color", Color(0.50, 0.55, 0.70))
+	subtitle.position = Vector2(0, 72)
+	subtitle.size = Vector2(480, 16)
 	root.add_child(subtitle)
 
 	var stats := Label.new()
 	stats.name = "Stats"
 	stats.unique_name_in_owner = true
 	stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stats.add_theme_font_size_override("font_size", 12)
-	stats.add_theme_color_override("font_color", Color(0.65, 0.70, 0.85))
-	stats.position = Vector2(0, 112)
-	stats.size = Vector2(480, 36)
+	stats.add_theme_font_size_override("font_size", 10)
+	stats.add_theme_color_override("font_color", Color(0.62, 0.67, 0.82))
+	stats.position = Vector2(0, 94)
+	stats.size = Vector2(480, 28)
 	root.add_child(stats)
+
+	# The buttons sit on a raised panel. Without it, three bare buttons read as
+	# grey slots and the hover state has nothing to sit against.
+	var panel := Panel.new()
+	panel.name = "ButtonPanel"
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.10, 0.11, 0.17)
+	panel_style.border_color = Color(0.30, 0.34, 0.48)
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(4)
+	panel_style.content_margin_left = 12.0
+	panel_style.content_margin_right = 12.0
+	panel_style.content_margin_top = 10.0
+	panel_style.content_margin_bottom = 10.0
+	panel.add_theme_stylebox_override("panel", panel_style)
+	panel.position = Vector2(146, 128)
+	panel.size = Vector2(188, 110)
+	root.add_child(panel)
 
 	var box := VBoxContainer.new()
 	box.name = "Buttons"
-	box.position = Vector2(170, 158)
-	box.custom_minimum_size = Vector2(140, 96)
-	box.add_theme_constant_override("separation", 7)
-	root.add_child(box)
+	# Positioned by hand rather than PRESET_FULL_RECT: a plain Panel's stylebox
+	# content margins do not inset an anchored child, and the VBox would spill
+	# past the panel's border on the bottom.
+	box.position = Vector2(14, 10)
+	box.size = Vector2(160, 90)
+	box.add_theme_constant_override("separation", 6)
+	panel.add_child(box)
 	for entry in [
 		["StartButton", "New Run"],
 		["ShopButton", "Upgrades"],
@@ -297,16 +334,22 @@ func _build_main_menu() -> void:
 		button.name = entry[0]
 		button.text = entry[1]
 		button.unique_name_in_owner = true
-		button.custom_minimum_size = Vector2(140, 24)
+		button.custom_minimum_size = Vector2(160, 26)
+		button.add_theme_font_size_override("font_size", 13)
+		button.add_theme_color_override("font_color", Color(0.85, 0.88, 0.97))
+		button.add_theme_color_override("font_hover_color", Color(1.0, 0.96, 0.85))
+		button.add_theme_color_override("font_focus_color", Color(1.0, 0.96, 0.85))
+		button.add_theme_color_override("font_pressed_color", Color(0.95, 0.75, 0.25))
+		_style_button(button)
 		box.add_child(button)
 
 	var hint := Label.new()
 	hint.name = "Hint"
 	hint.text = "WASD move    Mouse aim + LMB fire    Space dodge    Q swap    E interact\nF3 debug    F4 hitboxes    F7 god    F9 rebuild floor    F10 cheat"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.add_theme_font_size_override("font_size", 10)
-	hint.add_theme_color_override("font_color", Color(0.42, 0.46, 0.58))
-	hint.position = Vector2(0, 240)
+	hint.add_theme_font_size_override("font_size", 8)
+	hint.add_theme_color_override("font_color", Color(0.40, 0.44, 0.56))
+	hint.position = Vector2(0, 242)
 	hint.size = Vector2(480, 26)
 	root.add_child(hint)
 
@@ -319,6 +362,32 @@ func _build_main_menu() -> void:
 	else:
 		print("  main menu -> %s" % MAIN_MENU)
 	root.free()
+
+
+## One style set, four states: flat dark plates that brighten on hover and take a
+## gold border when focused, so keyboard navigation is visible at a glance.
+func _style_button(button: Button) -> void:
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.13, 0.15, 0.22)
+	normal.border_color = Color(0.32, 0.37, 0.52)
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(4)
+
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color(0.18, 0.21, 0.31)
+	hover.border_color = Color(0.55, 0.62, 0.80)
+
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color(0.08, 0.09, 0.14)
+
+	var focus := normal.duplicate() as StyleBoxFlat
+	focus.border_color = Color(0.95, 0.75, 0.25)
+	focus.set_border_width_all(2)
+
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("focus", focus)
 
 
 ## PackedScene.pack() ignores any child whose `owner` is not set, which silently
