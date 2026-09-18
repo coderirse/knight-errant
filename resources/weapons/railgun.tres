@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/placeholder/gun_pistol.png" id="1_elrle"]
+[ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="2_sixrd"]
+
+[resource]
+script = ExtResource("2_sixrd")
+id = &"railgun"
+display_name = "Piercer"
+icon = ExtResource("1_elrle")
+damage = 4
+fire_rate = 1.1
+recovery = 0.25
+projectile_speed = 700.0
+pierce = 4
+knockback = 260.0
+energy_cost = 12.0
+bullet_tint = Color(0.75, 0.6, 1, 1)
+bullet_scale = 1.3

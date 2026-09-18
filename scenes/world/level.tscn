@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/world/level.gd" id="1_o1x13"]
+[ext_resource type="Texture2D" path="res://assets/placeholder/tile_ground.png" id="2_0h38q"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_b4nb6"]
+texture = ExtResource("2_0h38q")
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+2:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+3:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_xqgxa"]
+physics_layer_0/collision_layer = 1
+physics_layer_0/collision_mask = 0
+sources/0 = SubResource("TileSetAtlasSource_b4nb6")
+
+[node name="Level" type="Node2D" unique_id=1382204363]
+script = ExtResource("1_o1x13")
+tile_set = SubResource("TileSet_xqgxa")

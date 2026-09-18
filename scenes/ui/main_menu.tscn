@@ -1,0 +1,84 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_sl1te"]
+
+[node name="MainMenu" type="Control" unique_id=1370465414]
+script = ExtResource("1_sl1te")
+layout_mode = 3
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Background" type="ColorRect" parent="." unique_id=1308968178]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.07, 0.07, 0.11, 1)
+
+[node name="Title" type="Label" parent="." unique_id=2084427865]
+layout_mode = 0
+offset_top = 34.0
+offset_right = 480.0
+offset_bottom = 88.0
+theme_override_font_sizes/font_size = 40
+theme_override_colors/font_color = Color(0.9, 0.93, 1, 1)
+text = "KNIGHT ERRANT"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="." unique_id=1717999210]
+layout_mode = 0
+offset_top = 84.0
+offset_right = 480.0
+offset_bottom = 107.0
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.55, 0.6, 0.75, 1)
+text = "twin-stick dungeon prototype"
+horizontal_alignment = 1
+
+[node name="Stats" type="Label" parent="." unique_id=932155353]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 112.0
+offset_right = 480.0
+offset_bottom = 148.0
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.65, 0.7, 0.85, 1)
+horizontal_alignment = 1
+
+[node name="Buttons" type="VBoxContainer" parent="." unique_id=1880056490]
+custom_minimum_size = Vector2(140, 96)
+layout_mode = 0
+offset_left = 170.0
+offset_top = 158.0
+offset_right = 170.0
+offset_bottom = 158.0
+theme_override_constants/separation = 7
+
+[node name="StartButton" type="Button" parent="Buttons" unique_id=91049469]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 24)
+layout_mode = 2
+text = "New Run"
+
+[node name="ShopButton" type="Button" parent="Buttons" unique_id=1283964559]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 24)
+layout_mode = 2
+text = "Upgrades"
+
+[node name="QuitButton" type="Button" parent="Buttons" unique_id=1569518829]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 24)
+layout_mode = 2
+text = "Quit"
+
+[node name="Hint" type="Label" parent="." unique_id=1650141934]
+layout_mode = 0
+offset_top = 240.0
+offset_right = 555.0
+offset_bottom = 289.0
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.42, 0.46, 0.58, 1)
+text = "WASD move    Mouse aim + LMB fire    Space dodge    Q swap    E interact
+F3 debug    F4 hitboxes    F7 god    F9 rebuild floor    F10 cheat"
+horizontal_alignment = 1

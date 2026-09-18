@@ -1,0 +1,13 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# Build output
+/build/
+*.exe
+*.pck
+
+# Export credentials / OS cruft
+export_credentials.cfg
+.DS_Store
+Thumbs.db

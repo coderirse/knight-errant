@@ -1,0 +1,66 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://scripts/player/player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/core/health.gd" id="2_health"]
+[ext_resource type="Script" path="res://scripts/core/energy_pool.gd" id="3_energy"]
+[ext_resource type="Script" path="res://scripts/core/hurtbox.gd" id="4_hurtbox"]
+[ext_resource type="Script" path="res://scripts/core/hitbox.gd" id="5_hitbox"]
+[ext_resource type="Texture2D" path="res://assets/placeholder/player.png" id="6_body"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_body"]
+radius = 7.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hurt"]
+radius = 8.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_melee"]
+size = Vector2(22, 20)
+
+[node name="Player" type="CharacterBody2D"]
+script = ExtResource("1_player")
+collision_layer = 2
+collision_mask = 1
+motion_mode = 1
+floor_snap_length = 0.0
+floor_stop_on_slope = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_body")
+
+[node name="Visual" type="Node2D" parent="."]
+
+[node name="Sprite2D" type="Sprite2D" parent="Visual"]
+texture = ExtResource("6_body")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("2_health")
+maximum = 5
+maximum_armor = 5
+armor_regen_delay = 3.5
+armor_regen_rate = 1.0
+invincibility_time = 0.8
+
+[node name="Energy" type="Node" parent="."]
+script = ExtResource("3_energy")
+maximum = 200.0
+regen_per_second = 14.0
+regen_delay = 0.55
+
+[node name="Hurtbox" type="Area2D" parent="."]
+script = ExtResource("4_hurtbox")
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("CircleShape2D_hurt")
+
+[node name="AimPivot" type="Node2D" parent="."]
+
+[node name="MeleeHitbox" type="Area2D" parent="AimPivot"]
+script = ExtResource("5_hitbox")
+collision_layer = 32
+collision_mask = 16
+tag = &"melee"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AimPivot/MeleeHitbox"]
+shape = SubResource("RectangleShape2D_melee")

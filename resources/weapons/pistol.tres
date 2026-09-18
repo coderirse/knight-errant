@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/placeholder/gun_pistol.png" id="1_uny8x"]
+[ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="2_15s11"]
+
+[resource]
+script = ExtResource("2_15s11")
+display_name = "Rusty Pistol"
+icon = ExtResource("1_uny8x")
+damage = 2
+recovery = 0.02
+spread_degrees = 3.0
+projectile_speed = 320.0
+knockback = 90.0

@@ -1,0 +1,131 @@
+class_name Health
+extends Node
+
+## Hit-point component shared by the player and every enemy.
+##
+## Two layers, matching Soul Knight's readout: armour absorbs damage first and
+## regenerates on its own after a quiet period, health does not come back. That
+## split is what makes the shield an interesting resource — it rewards breaking
+## contact rather than tanking.
+##
+## Enemies leave maximum_armor at 0 and behave like a plain health pool.
+
+signal changed(current: int, maximum: int)
+signal armor_changed(current: int, maximum: int)
+signal damaged(amount: int, absorbed_by_armor: bool)
+signal depleted
+signal healed(amount: int, current: int)
+
+@export var maximum := 5
+## Extra buffer in front of health. 0 disables the whole armour mechanic.
+@export var maximum_armor := 0
+## Seconds without taking damage before armour starts refilling.
+@export var armor_regen_delay := 3.0
+## Armour points restored per second once regeneration starts.
+@export var armor_regen_rate := 1.0
+## Player uses ~0.8s. Enemies that should be punishable use 0.0-0.2s.
+@export var invincibility_time := 0.8
+@export var starts_full := true
+
+var current := 0
+var armor := 0
+var invincible := false
+
+var _iframe_left := 0.0
+var _quiet_time := 0.0
+
+
+func _ready() -> void:
+	current = maximum if starts_full else 0
+	armor = maximum_armor if starts_full else 0
+	changed.emit(current, maximum)
+	armor_changed.emit(armor, maximum_armor)
+
+
+func _process(delta: float) -> void:
+	if _iframe_left > 0.0:
+		_iframe_left = maxf(_iframe_left - delta, 0.0)
+		if is_zero_approx(_iframe_left):
+			invincible = false
+
+	if maximum_armor > 0 and armor < maximum_armor and current > 0:
+		_quiet_time += delta
+		if _quiet_time >= armor_regen_delay:
+			var before := armor
+			armor = mini(armor + 1, maximum_armor)
+			if armor != before:
+				armor_changed.emit(armor, maximum_armor)
+
+
+## Returns true when the damage was actually applied. Armour soaks the hit first;
+## only the overflow reaches health.
+func apply_damage(info: DamageInfo) -> bool:
+	if current <= 0:
+		return false
+	if invincible and not info.ignores_invincibility:
+		return false
+
+	_quiet_time = 0.0
+	var remaining := info.amount
+	var absorbed := false
+
+	if armor > 0:
+		var soaked := mini(armor, remaining)
+		armor -= soaked
+		remaining -= soaked
+		absorbed = true
+		armor_changed.emit(armor, maximum_armor)
+
+	if remaining > 0:
+		current = maxi(current - remaining, 0)
+		changed.emit(current, maximum)
+
+	damaged.emit(info.amount, absorbed)
+	if current == 0:
+		depleted.emit()
+	return true
+
+
+## Returns the amount actually restored. Healing never revives: a depleted
+## Health is dead for good, and the respawn flow is what brings the player back.
+func heal(amount: int) -> int:
+	if current <= 0:
+		return 0
+	var before := current
+	current = mini(current + amount, maximum)
+	var gained := current - before
+	if gained > 0:
+		healed.emit(gained, current)
+		changed.emit(current, maximum)
+	return gained
+
+
+func restore_armor(amount: int) -> int:
+	if current <= 0 or maximum_armor <= 0:
+		return 0
+	var before := armor
+	armor = mini(armor + amount, maximum_armor)
+	var gained := armor - before
+	if gained > 0:
+		armor_changed.emit(armor, maximum_armor)
+	return gained
+
+
+func start_invincibility(duration := -1.0) -> void:
+	invincible = true
+	_iframe_left = invincibility_time if duration < 0.0 else duration
+
+
+func set_maximum(value: int, refill := false) -> void:
+	maximum = maxi(value, 1)
+	current = maximum if refill else mini(current, maximum)
+	changed.emit(current, maximum)
+
+
+func is_alive() -> bool:
+	return current > 0
+
+
+## Total effective hit points, armour included. Used by tests and UI.
+func effective_total() -> int:
+	return current + armor

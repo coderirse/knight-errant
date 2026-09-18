@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/placeholder/sword.png" id="1_t8t18"]
+[ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="2_d4cb0"]
+
+[resource]
+script = ExtResource("2_d4cb0")
+id = &"sword"
+display_name = "Chipped Blade"
+icon = ExtResource("1_t8t18")
+damage = 3
+fire_rate = 2.2
+recovery = 0.06
+knockback = 240.0
+energy_cost = 0.0
+is_melee = true
+melee_range = 24.0

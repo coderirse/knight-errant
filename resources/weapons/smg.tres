@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/placeholder/gun_pistol.png" id="1_nx4t2"]
+[ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="2_v2t4f"]
+
+[resource]
+script = ExtResource("2_v2t4f")
+id = &"smg"
+display_name = "Chatter SMG"
+icon = ExtResource("1_nx4t2")
+fire_rate = 11.0
+spread_degrees = 11.0
+projectile_speed = 360.0
+knockback = 45.0
+energy_cost = 1.5
+bullet_tint = Color(0.7, 0.95, 1, 1)
+bullet_scale = 0.85

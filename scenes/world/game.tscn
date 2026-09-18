@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/world/game.gd" id="1_hqfqh"]
+[ext_resource type="Script" path="res://scripts/world/camera_rig.gd" id="2_3iwug"]
+
+[node name="Game" type="Node2D" unique_id=1282867390]
+script = ExtResource("1_hqfqh")
+
+[node name="LevelHolder" type="Node2D" parent="." unique_id=1426193326]
+y_sort_enabled = true
+
+[node name="CameraRig" type="Camera2D" parent="." unique_id=1511105516]
+script = ExtResource("2_3iwug")
+
+[node name="Ambience" type="CanvasModulate" parent="." unique_id=1434419431]
+color = Color(0.74, 0.76, 0.88, 1)
