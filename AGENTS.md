@@ -206,7 +206,7 @@ Godot **按文件顺序应用属性**：`script =` 必须写在自定义属性�
 "门存在且指向正确房间"、"玩家在房间矩形内"，这些在偏一格时依然成立。
 结果门被开在**地板**上而不是墙上。只有直接量几何才暴露。
 
-**改了房间/门/瓦片坐标后，必须确认 `test_run` §16
+**改了房间/门/瓦片坐标后，必须确认 `test_run` §17
 「stamped tiles match their template」通过**，它逐格比对贴图与模板。
 
 **涉及空间的断言要直接量几何**（`used_rect`、世界坐标、格子索引），
@@ -221,7 +221,7 @@ Godot **按文件顺序应用属性**：`script =` 必须写在自定义属性�
 而且看起来像关卡生成 bug 而不是模板 bug。
 
 用 `Room._spawn_tiles()`（来自模板的可走格，距边界 ≥2 格以避开门口）。
-由 `test_run` §17 跨 24 个种子守着。
+由 `test_run` §18 跨 24 个种子守着。
 
 ---
 
@@ -375,7 +375,7 @@ StringName/数组）会被跳过。
 修改全局状态**之前**；全局状态的恢复收拢到**唯一**的 `_release()`，
 成功与失败路径共用，两者不可能再分叉。
 
-**回归测试**：`test_run.gd` §13 驱动真实入口 `start_new_run()`，
+**回归测试**：`test_run.gd` §14 驱动真实入口 `start_new_run()`，
 断言 `is_busy` / `paused` / `input_locked` 全部复位，并做第二次切换验证路由没卡死。
 真实渲染下也验证过（开局 → Game 场景 → 100 FPS → 回菜单，零脚本错误）。
 
@@ -391,7 +391,7 @@ StringName/数组）会被跳过。
 `Player.apply_meta_upgrades()` 按表应用，`main_menu` 按表出售。
 卖一个不存在的升级已经不可能。
 
-**回归测试**：`test_run.gd` §14 断言**每一项**升级都真的改变了对应属性
+**回归测试**：`test_run.gd` §15 断言**每一项**升级都真的改变了对应属性
 （`max_speed` / `max_masks` / `max_armor`），且价格随等级上升、满级后拒绝购买。
 
 ### 🟢 P3 — 死代码已清理
@@ -433,7 +433,7 @@ per second"，`scenes/player/player.tscn:40` 把它设成 `1.0`，`test_gameplay
   时间，断言慢的那个 0 点、快的满 3 点。旧实现下两者都是 3 点，断言必红——
   **已做反向验证**：临时把实现改回每帧 +1，测试报
   `regen speed comes from the rate, not the frame count (slow 3 / fast 3)`。
-  `test_run` §15 另有一条断言调参台能收集到 `armor_regen_rate`，防这条接线静默断掉。
+  `test_run` §16 另有一条断言调参台能收集到 `armor_regen_rate`，防这条接线静默断掉。
 
 ### 其它
 
@@ -480,6 +480,6 @@ per second"，`scenes/player/player.tscn:40` 把它设成 `1.0`，`test_gameplay
 - [ ] 涉及全局状态（`paused` / `input_locked` / `_busy`）的改动 → 恢复逻辑仍收拢在 `_release()`
 - [ ] 新增测试写在 `.tscn` 里，不是 `--script`
 - [ ] 新增"跨系统流程" → `test_run` 里有一条驱动**真实入口**的断言（见 §2 教训）
-- [ ] 碰过房间/门/瓦片坐标 → `test_run` §16「stamped tiles match their template」通过
+- [ ] 碰过房间/门/瓦片坐标 → `test_run` §17「stamped tiles match their template」通过
 - [ ] 新增模板 → 外圈留空、内部连通（`test_gameplay` §9 会校验）
 - [ ] 本文档第 6 节已同步

@@ -280,7 +280,7 @@ func _run() -> void:
 	_check(unreachable == 0, "every room is reachable from the start across %d seeds" % seeds_checked)
 	_check(short_on_doors == 0, "every seed carves enough doors across %d seeds" % seeds_checked)
 
-	print("\n== 12. descending a floor ==")
+	print("\n== 13. descending a floor ==")
 	var floor_before := RunState.floor
 	RunState.advance_floor()
 	await _game.build_floor(RunState.floor, RunState.level_seed)
@@ -292,7 +292,7 @@ func _run() -> void:
 	var in_new_room := _room_containing(_game.player.global_position)
 	_check(in_new_room != null, "player was placed inside the new floor")
 
-	print("\n== 13. SceneRouter real entry path (guards the P0 black-screen) ==")
+	print("\n== 14. SceneRouter real entry path (guards the P0 black-screen) ==")
 	# The two suites used to only assert `SceneRouter != null`, which is why a
 	# fatal bug survived them: go_to_scene() threw AFTER fading to black and
 	# pausing the tree, leaving paused=true and input_locked=true forever. So this
@@ -323,7 +323,7 @@ func _run() -> void:
 		"returned to the menu scene")
 	_check(not get_tree().paused and not GameState.input_locked, "global state clean after two transitions")
 
-	print("\n== 14. permanent upgrades actually reach the player ==")
+	print("\n== 15. permanent upgrades actually reach the player ==")
 	# P2 was: the hub sold `speed` but Game only applied max_health and max_armor,
 	# so the gems were spent for nothing. Every upgrade in the table must have an
 	# effect, otherwise the shop is lying to the player again.
@@ -360,7 +360,7 @@ func _run() -> void:
 	_check(GameState.is_upgrade_maxed(&"speed"), "an upgrade stops at its max level")
 	_check(not GameState.buy_upgrade(&"speed"), "buying past max level is refused")
 
-	print("\n== 15. tuning panel collects live parameters ==")
+	print("\n== 16. tuning panel collects live parameters ==")
 	PlayerHost.despawn()
 	await SceneRouter.start_new_run(777)
 	await _settle(6)
@@ -389,7 +389,7 @@ func _run() -> void:
 	# the shield stops being tunable while everything still looks fine.
 	_check(saw_shield, "armour regen rate is exposed for tuning")
 
-	print("\n== 16. templates survive contact with the level generator ==")
+	print("\n== 17. templates survive contact with the level generator ==")
 	# The catalogue's own checks live in test_gameplay; these are the spatial
 	# properties that only show up once rooms are built and populated: an enemy
 	# inside a pillar or a doorway walled off by a template.
@@ -435,7 +435,7 @@ func _run() -> void:
 					mismatches += 1
 	_check(mismatches == 0, "stamped tiles match their template (%d mismatches)" % mismatches)
 
-	print("\n== 17. nothing spawns inside a wall, across many seeds ==")
+	print("\n== 18. nothing spawns inside a wall, across many seeds ==")
 	# The failure this guards against: an enemy stuck inside a pillar can never be
 	# killed, so the room never clears and the floor is unwinnable — and it would
 	# look like a level-generation bug rather than a template bug.
@@ -464,7 +464,7 @@ func _run() -> void:
 	_check(chests_in_solid == 0,
 		"no chest spawned inside a wall across %d seeds (%d bad)" % [spawn_seeds, chests_in_solid])
 
-	print("\n== 18. dungeon lighting is built and scoped ==")
+	print("\n== 19. dungeon lighting is built and scoped ==")
 	var lit_level := _game.level
 	var lamp_carrier := get_tree().get_first_node_in_group(&"player")
 	_check(lit_level.get_node_or_null("Ambience") is CanvasModulate,
@@ -526,7 +526,7 @@ func _run() -> void:
 	else:
 		_check(false, "test could not tell which room the player is standing in")
 
-	print("\n== 19. cleanup ==")
+	print("\n== 20. cleanup ==")
 	TuningPanel.set("_open", false)
 	GameState.reset_meta()
 	RunState.end_run(false)
