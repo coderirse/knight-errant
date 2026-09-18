@@ -93,6 +93,35 @@ func _run() -> void:
 	await get_tree().process_frame
 	await regenerate_probe(regen)
 
+	# The bug this catches: refill used to be `armor + 1` once per *frame*, so
+	# `armor_regen_rate` was decoration and the shield refilled in five frames.
+	# Two shields that differ ONLY in rate must therefore differ in progress.
+	var slow := Health.new()
+	slow.maximum = 5
+	slow.maximum_armor = 3
+	slow.armor_regen_delay = 0.0
+	slow.armor_regen_rate = 0.5
+	slow.invincibility_time = 0.0
+	var fast := Health.new()
+	fast.maximum = 5
+	fast.maximum_armor = 3
+	fast.armor_regen_delay = 0.0
+	fast.armor_regen_rate = 4.0
+	fast.invincibility_time = 0.0
+	add_child(slow)
+	add_child(fast)
+	await get_tree().process_frame
+	slow.apply_damage(DamageInfo.create(3, Vector2.ZERO, 0.0, &"test"))
+	fast.apply_damage(DamageInfo.create(3, Vector2.ZERO, 0.0, &"test"))
+	# Both accumulate the same deltas, so the gap is purely the rate:
+	# 0.5/s has earned nothing after 1 s, 4.0/s has earned all three points.
+	await get_tree().create_timer(1.0).timeout
+	_check(slow.armor == 0 and fast.armor == fast.maximum_armor,
+		"regen speed comes from the rate, not the frame count (slow %d / fast %d)"
+		% [slow.armor, fast.armor])
+	slow.queue_free()
+	fast.queue_free()
+
 	print("\n== 5. energy pool ==")
 	var energy := EnergyPool.new()
 	energy.maximum = 100.0

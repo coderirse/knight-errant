@@ -109,6 +109,11 @@ func _collect_entries() -> bool:
 	var fresh: Array[Dictionary] = []
 	_collect_from(player, "Player", fresh)
 
+	# The shield is feel too, and its numbers live on the Health node rather than
+	# on the Player, so reflection has to be pointed at it explicitly.
+	if player.health != null:
+		_collect_from(player.health, "Health", fresh)
+
 	var weapon := player.current_weapon()
 	if weapon != null and weapon.data != null:
 		_collect_from(weapon.data, "Weapon: %s" % weapon.data.display_name, fresh)

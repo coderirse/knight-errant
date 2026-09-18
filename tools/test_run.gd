@@ -373,14 +373,21 @@ func _run() -> void:
 
 	var saw_speed := false
 	var saw_dodge := false
+	var saw_shield := false
 	for entry in (TuningPanel.get("_entries") as Array):
 		var prop := String(entry["prop"])
 		if prop == "max_speed":
 			saw_speed = true
 		elif prop == "dodge_time":
 			saw_dodge = true
+		elif prop == "armor_regen_rate":
+			saw_shield = true
 	_check(saw_speed, "player max_speed is exposed for tuning")
 	_check(saw_dodge, "player dodge_time is exposed for tuning")
+	# The shield lives on a child node, so the panel only finds it if collection is
+	# pointed at Health explicitly. Without this the knob disappears silently and
+	# the shield stops being tunable while everything still looks fine.
+	_check(saw_shield, "armour regen rate is exposed for tuning")
 
 	print("\n== 16. templates survive contact with the level generator ==")
 	# The catalogue's own checks live in test_gameplay; these are the spatial

@@ -37,7 +37,7 @@ script = ExtResource("2_health")
 maximum = 5
 maximum_armor = 5
 armor_regen_delay = 3.5
-armor_regen_rate = 1.0
+armor_regen_rate = 2.0
 invincibility_time = 0.8
 
 [node name="Energy" type="Node" parent="."]

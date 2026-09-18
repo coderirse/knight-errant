@@ -33,6 +33,10 @@ var invincible := false
 
 var _iframe_left := 0.0
 var _quiet_time := 0.0
+## Fractional armour points banked toward the next whole point. Kept separate
+## from `_quiet_time` because the two answer different questions: how long has
+## it been quiet, and how much of the next point is paid for.
+var _regen_progress := 0.0
 
 
 func _ready() -> void:
@@ -51,10 +55,17 @@ func _process(delta: float) -> void:
 	if maximum_armor > 0 and armor < maximum_armor and current > 0:
 		_quiet_time += delta
 		if _quiet_time >= armor_regen_delay:
-			var before := armor
-			armor = mini(armor + 1, maximum_armor)
-			if armor != before:
+			# Rate is points per *second*, not per frame: this has to stay correct
+			# on a 144 Hz display, where a per-frame +1 refilled 2.4x faster.
+			_regen_progress += armor_regen_rate * delta
+			while armor < maximum_armor and _regen_progress >= 1.0:
+				_regen_progress -= 1.0
+				armor += 1
 				armor_changed.emit(armor, maximum_armor)
+	else:
+		# A full (or absent) shield banks nothing — otherwise the progress saved
+		# up while it was full would burst out the moment one point was lost.
+		_regen_progress = 0.0
 
 
 ## Returns true when the damage was actually applied. Armour soaks the hit first;
@@ -66,6 +77,9 @@ func apply_damage(info: DamageInfo) -> bool:
 		return false
 
 	_quiet_time = 0.0
+	# Partial regen progress dies with the quiet period; otherwise a hit taken
+	# just before the next point would be paid for by the timer it already ran.
+	_regen_progress = 0.0
 	var remaining := info.amount
 	var absorbed := false
 

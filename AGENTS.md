@@ -35,10 +35,10 @@ GODOT=/d/Godot4/Godot_v4.7.2-stable_win64_console.exe
 ### 改完代码必须跑的两套测试
 
 ```bash
-# 核心系统（69 项）：伤害/护盾/能量/武器/存档/房间模板目录
+# 核心系统（70 项）：伤害/护盾/能量/武器/存档/房间模板目录
 $GODOT --headless --path . res://tools/test_gameplay.tscn
 
-# 整合（69 项）：真实生成楼层、真物理打死敌人、清房间、过门、换层、
+# 整合（70 项）：真实生成楼层、真物理打死敌人、清房间、过门、换层、
 #                场景切换入口、永久升级生效、调参台、模板空间校验
 $GODOT --headless --path . res://tools/test_run.tscn
 ```
@@ -55,7 +55,7 @@ $GODOT --headless --path . res://tools/test_run.tscn
 所以**必须读 stdout**——理由不是"断言失败也返回 0"（那不对），
 而是**脚本中途崩溃会返回 0**。P0 那种故障恰好属于后一类：既不报红、也不改退出码。
 
-两套全绿 = **138 项**，与 README 一致。数量对不上说明测试被改动了。
+两套全绿 = **140 项**，与 README 一致。数量对不上说明测试被改动了。
 
 ### 生成器与执行顺序
 
@@ -290,14 +290,22 @@ $GODOT --path .     # 开局后按 F2 打开
 | `F5` | 全部恢复本次启动时的值 |
 | `F6` | 打印改动到控制台并复制到剪贴板 |
 
-调参台的参数是**反射自动发现**的 —— Player 和当前武器的每个数值型
+调参台的参数是**反射自动发现**的 —— Player、Health 和当前武器的每个数值型
 `@export` 都会出现，**加新参数不用改调参台**。非数值类型（Texture/Color/
 StringName/数组）会被跳过。
 
 按键刻意选在 `[` `]` `-` `=`，**不占用移动和射击**，所以可以边跑边打边调。
 
-调好之后 `F6` 转储 → 把数值**手工写回** `player.gd` 的 `@export` 默认值
-或 `build_scenes.gd` 的 `WEAPONS` 表，然后重跑生成器。
+调好之后 `F6` 转储 → 把数值**手工写回**，位置取决于参数住在哪个文件：
+
+| 参数 | 写回哪里 |
+|---|---|
+| 移动 / 翻滚（`max_speed` 等） | `player.gd` 的 `@export` 默认值 |
+| 武器数值 | `build_scenes.gd` 的 `WEAPONS` 表 → 重跑生成器 |
+| 血量 / 护盾 / 回复速率 | **`scenes/player/player.tscn` 的 `Health` 节点** |
+
+⚠️ 写错地方是**静默的**：`.tscn` 里的属性覆盖脚本 `@export` 默认值，
+所以把护盾数值写进 `health.gd` 等于什么都没改。
 
 > ⚠️ **调参台故意不保存 `.tres`**。`resources/weapons/*.tres` 由
 > `build_scenes.gd` 生成，从调参台保存会让两边内容分叉。
@@ -381,7 +389,7 @@ StringName/数组）会被跳过。
 - `Player.acquire_into_room()`（空函数）
 - `PlayerHost.park()` / `unpark()`（无调用者）
 
-### 🔴 P4 — 未修复：`armor_regen_rate` 是死参数，护盾实际几乎瞬间回满
+### 🟢 P4 — 已修复：`armor_regen_rate` 是死参数，护盾曾经几乎瞬间回满
 
 `scripts/core/health.gd:25` 导出 `armor_regen_rate`，注释写着 "Armour points restored
 per second"，`scenes/player/player.tscn:40` 把它设成 `1.0`，`test_gameplay.gd:90`
@@ -396,9 +404,19 @@ per second"，`scenes/player/player.tscn:40` 把它设成 `1.0`，`test_gameplay
   现在它奖励的是"找掩体站 3.5 秒"。而且回复速度**取决于帧率**，高刷屏上更快。
 - **为什么一直没被发现**：`test_gameplay` §4 只断言 `armor >= 1`，在每帧 +1 下恒成立。
   属于 §11.0-B 同一类："定义在 A、消费在 B"，参数被认真地设置了，就是没人用。
-- **修法**（**没做**，等用户定）：延迟达标后按 `armor_regen_rate * delta` 累积小数、
-  满 1 点才加，并让累加器独立于 `_quiet_time`。**但这会明显削弱护盾**，
-  属于 Q1 手感范畴，应当在手制定调时一起决定，不要单独顺手改。
+- **修法（已做）**：`Health` 加了独立的 `_regen_progress`，安静期过后按
+  `armor_regen_rate * delta` 攒小数、满 1 点才 +1，所以回复与帧率无关。
+  两个边界都处理了：盾满时累加器清零（否则攒下的进度会在被打掉一点后瞬间爆发），
+  `apply_damage` 里连同 `_quiet_time` 一起清零（否则被打前跑的那半秒白发）。
+- **玩家起始值**：`armor_regen_delay = 3.5` + `armor_regen_rate = 2.0` →
+  盾 5 点 = 3.5 秒延迟 + 2.5 秒回满。**比修复前弱得多，这是 2026-09-18 用户
+  拍板的设计决定**（逐点回复奖励 hit-and-run，而非找掩体站 3.5 秒）。
+  五个 `Health` 数值参数已接进 F2 调参台，手感阶段可以随时改。
+- **回归测试**：`test_gameplay` §4 用两个**只差 rate** 的护盾（0.5 与 4.0）跑同一段
+  时间，断言慢的那个 0 点、快的满 3 点。旧实现下两者都是 3 点，断言必红——
+  **已做反向验证**：临时把实现改回每帧 +1，测试报
+  `regen speed comes from the rate, not the frame count (slow 3 / fast 3)`。
+  `test_run` §15 另有一条断言调参台能收集到 `armor_regen_rate`，防这条接线静默断掉。
 
 ### 其它
 
@@ -411,8 +429,8 @@ per second"，`scenes/player/player.tscn:40` 把它设成 `1.0`，`test_gameplay
   中文文件名，**未被修改的文件会彻底躲过 `git status`**，改了也不知道；
   改名之后还会留下一条假的 delete。本机已另外设 `core.fsmonitor=true` 兜底，
   但新加文件请直接用 ASCII 名，别依赖它。
-- 提交前过第 8 节清单。两套测试共 138 项，最后一行必须是 `ALL 69 CHECKS PASSED`
-  （每套 69 项）。
+- 提交前过第 8 节清单。两套测试共 140 项，最后一行必须是 `ALL 70 CHECKS PASSED`
+  （每套 70 项）。
 
 ---
 
@@ -433,11 +451,13 @@ per second"，`scenes/player/player.tscn:40` 把它设成 `1.0`，`test_gameplay
 
 ## 8. 提交前清单
 
-- [ ] `test_gameplay` 与 `test_run` 都输出 `ALL NN CHECKS PASSED`（共 138 项）
+- [ ] `test_gameplay` 与 `test_run` 都输出 `ALL NN CHECKS PASSED`（共 140 项）
 - [ ] 碰过 autoload 列表 → 已重跑 `setup_project.gd`
 - [ ] 碰过 `WEAPONS` 表或场景生成器 → 已重跑 `build_scenes.gd`
 - [ ] 没有把"死了该丢"的东西写进 `GameState`
 - [ ] 没有把永久升级的定义写散到多处（一律进 `GameState.UPGRADES` 表）
+- [ ] 新增的 `@export` 数值参数有真实的**读取方**，不是只被赋值（P4 教训：
+      `grep -rn 参数名` 只出现声明与赋值 = 死参数）
 - [ ] 新增的子弹/碰撞体 mask 分对了阵营
 - [ ] 涉及全局状态（`paused` / `input_locked` / `_busy`）的改动 → 恢复逻辑仍收拢在 `_release()`
 - [ ] 新增测试写在 `.tscn` 里，不是 `--script`
