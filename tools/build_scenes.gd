@@ -31,30 +31,56 @@ const WEAPONS := [
 		"spread": 3.0, "count": 1, "speed": 320.0, "energy": 1.0, "recovery": 0.02,
 		"knockback": 90.0, "icon": "gun_pistol.png", "tint": Color(1, 1, 1, 1),
 		"scale": 1.0, "desc": "starting sidearm",
+		"ammo": 12, "reload": 1.1, "scatter_final": 12.0, "crit_rate": 0.10,
 	},
 	{
 		"id": &"shotgun", "name": "Scrap Shotgun", "damage": 2, "fire_rate": 1.3,
 		"spread": 34.0, "count": 5, "speed": 250.0, "energy": 8.0, "recovery": 0.18,
 		"knockback": 220.0, "icon": "gun_shotgun.png", "tint": Color(1.0, 0.85, 0.6),
 		"scale": 1.15, "desc": "short range, heavy stagger",
+		"ammo": 6, "reload": 1.6, "scatter_final": 44.0, "scatter_per_shot": 6.0,
 	},
 	{
 		"id": &"smg", "name": "Chatter SMG", "damage": 1, "fire_rate": 11.0,
 		"spread": 11.0, "count": 1, "speed": 360.0, "energy": 1.5, "recovery": 0.0,
 		"knockback": 45.0, "icon": "gun_pistol.png", "tint": Color(0.7, 0.95, 1.0),
 		"scale": 0.85, "desc": "spray, eats energy",
+		"ammo": 30, "reload": 1.4, "scatter_final": 26.0, "scatter_per_shot": 2.0,
 	},
 	{
 		"id": &"railgun", "name": "Piercer", "damage": 4, "fire_rate": 1.1,
 		"spread": 0.0, "count": 1, "speed": 700.0, "energy": 12.0, "recovery": 0.25,
 		"knockback": 260.0, "pierce": 4, "icon": "gun_pistol.png",
 		"tint": Color(0.75, 0.6, 1.0), "scale": 1.3, "desc": "pierces a line",
+		"ammo": 4, "reload": 1.8, "type": &"pierce", "crit_rate": 0.20,
 	},
 	{
 		"id": &"sword", "name": "Chipped Blade", "damage": 3, "fire_rate": 2.2,
 		"is_melee": true, "melee_range": 24.0, "energy": 0.0, "recovery": 0.06,
 		"knockback": 240.0, "icon": "sword.png", "tint": Color(1, 1, 1, 1),
 		"scale": 1.0, "desc": "free swings, no ammo",
+	},
+	{
+		"id": &"launcher", "name": "Scrap Launcher", "damage": 3, "fire_rate": 0.9,
+		"spread": 2.0, "count": 1, "speed": 220.0, "energy": 10.0, "recovery": 0.2,
+		"knockback": 200.0, "icon": "gun_shotgun.png", "tint": Color(1.0, 0.6, 0.3),
+		"scale": 1.4, "desc": "lobbed shell, area damage on impact",
+		"ammo": 4, "reload": 2.0, "type": &"explosive",
+		"explode_radius": 44.0, "explode_damage": 2, "lifetime": 0.9,
+	},
+	{
+		"id": &"splitter", "name": "Splitter Wand", "damage": 2, "fire_rate": 2.0,
+		"spread": 4.0, "count": 1, "speed": 260.0, "energy": 6.0, "recovery": 0.1,
+		"knockback": 80.0, "icon": "gun_pistol.png", "tint": Color(1.0, 0.5, 0.7),
+		"scale": 1.1, "desc": "bolt fans out when it expires",
+		"ammo": 10, "reload": 1.3, "type": &"fire", "split": 3, "lifetime": 0.55,
+	},
+	{
+		"id": &"ricochet", "name": "Nail Ricochet", "damage": 1, "fire_rate": 6.0,
+		"spread": 6.0, "count": 1, "speed": 340.0, "energy": 1.0, "recovery": 0.0,
+		"knockback": 60.0, "icon": "gun_pistol.png", "tint": Color(0.6, 1.0, 0.7),
+		"scale": 0.9, "desc": "nails bounce off walls",
+		"ammo": 24, "reload": 1.2, "bounce": 2,
 	},
 	{
 		"id": &"enemy_pistol", "name": "Cultist Wand", "damage": 1, "fire_rate": 1.0,
@@ -131,6 +157,20 @@ func _build_weapons() -> void:
 		data.pierce = int(entry.get("pierce", 0))
 		data.knockback = float(entry.get("knockback", 120.0))
 		data.energy_cost = float(entry.get("energy", 1.0))
+		data.projectile_lifetime = float(entry.get("lifetime", 1.4))
+		data.ammo_capacity = int(entry.get("ammo", -1))
+		data.reload_time = float(entry.get("reload", 1.2))
+		data.auto_reload = bool(entry.get("auto_reload", true))
+		data.scatter_final_degrees = float(entry.get("scatter_final", 0.0))
+		data.scatter_per_shot = float(entry.get("scatter_per_shot", 4.0))
+		data.scatter_recovery = float(entry.get("scatter_recovery", 30.0))
+		data.damage_type = entry.get("type", &"physical")
+		data.crit_rate = float(entry.get("crit_rate", 0.0))
+		data.crit_bonus = float(entry.get("crit_bonus", 0.5))
+		data.bounce_count = int(entry.get("bounce", 0))
+		data.explode_radius = float(entry.get("explode_radius", 0.0))
+		data.explode_damage = int(entry.get("explode_damage", 0))
+		data.split_count = int(entry.get("split", 0))
 		data.is_melee = bool(entry.get("is_melee", false))
 		data.melee_range = float(entry.get("melee_range", 22.0))
 		data.bullet_tint = entry.get("tint", Color.WHITE)

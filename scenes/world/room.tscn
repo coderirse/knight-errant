@@ -15,15 +15,15 @@ physics_layer_0/collision_layer = 1
 physics_layer_0/collision_mask = 0
 sources/0 = SubResource("TileSetAtlasSource_b4nb6")
 
-[node name="Room" type="Node2D" unique_id=1342054366]
+[node name="Room" type="Node2D" unique_id=92458446]
 script = ExtResource("1_7lhff")
 
-[node name="Terrain" type="Node2D" parent="." unique_id=346419322]
+[node name="Terrain" type="Node2D" parent="." unique_id=1318284906]
 
-[node name="Ground" type="TileMapLayer" parent="Terrain" unique_id=1081471120]
+[node name="Ground" type="TileMapLayer" parent="Terrain" unique_id=1969872084]
 tile_set = SubResource("TileSet_xqgxa")
 
-[node name="Actors" type="Node2D" parent="." unique_id=212512794]
+[node name="Actors" type="Node2D" parent="." unique_id=759531792]
 y_sort_enabled = true
 
-[node name="Projectiles" type="Node2D" parent="." unique_id=11658714]
+[node name="Projectiles" type="Node2D" parent="." unique_id=1200521083]

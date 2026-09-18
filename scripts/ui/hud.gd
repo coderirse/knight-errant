@@ -198,7 +198,12 @@ func _refresh_weapon() -> void:
 	var index := _player.weapon_index + 1
 	var data := weapon.data
 	var cost := "melee" if data.is_melee else "energy %d" % int(data.energy_cost)
-	_weapon_label.text = "[%d/%d] %s   dmg %d   %s" % [index, slots, data.display_name, data.damage, cost]
+	var ammo := ""
+	if weapon.reloading:
+		ammo = "  RELOADING"
+	elif weapon.ammo_left >= 0:
+		ammo = "  ammo %d/%d" % [weapon.ammo_left, data.ammo_capacity]
+	_weapon_label.text = "[%d/%d] %s   dmg %d   %s%s" % [index, slots, data.display_name, data.damage, cost, ammo]
 
 
 func _on_gold_changed(amount: int) -> void:

@@ -13,11 +13,21 @@ extends Area2D
 @export var pickup_delay := 0.8
 @export var bob_height := 3.0
 
+@export_group("Thrown")
+@export var thrown_speed := 260.0
+@export var thrown_damage := 2
+@export var thrown_time := 0.9
+
 @onready var sprite: Sprite2D = $Sprite2D
 
 var _armed := false
 var _bob_time := 0.0
 var _base_y := 0.0
+var _thrown := false
+var _thrown_dir := Vector2.RIGHT
+var _thrown_speed_now := 0.0
+var _thrown_left := 0.0
+var _thrown_hit := {}
 
 
 func _ready() -> void:
@@ -33,8 +43,40 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if sprite == null:
 		return
+	if _thrown:
+		# The arming timer from _ready may fire mid-flight; a flying weapon is
+		# not loot until it lands.
+		_armed = false
+		_thrown_left -= delta
+		_thrown_speed_now = maxf(_thrown_speed_now - 420.0 * delta, 0.0)
+		global_position += _thrown_dir * _thrown_speed_now * delta
+		sprite.rotation += 14.0 * delta
+		if _thrown_left <= 0.0 or _thrown_speed_now <= 1.0:
+			_land()
+		return
+	sprite.rotation = 0.0
 	_bob_time += delta
 	sprite.position.y = _base_y + sin(_bob_time * 3.0) * bob_height
+
+
+## Turns a resting pickup into a flying one. Called by Player right after the
+## node enters the tree, so _ready has already run.
+func launch(direction: Vector2, at: Vector2) -> void:
+	_thrown = true
+	_thrown_dir = direction.normalized() if direction.length_squared() > 0.001 else Vector2.RIGHT
+	_thrown_speed_now = thrown_speed
+	_thrown_left = thrown_time
+	global_position = at
+	# Enemies live on layer 8; a resting pickup only listens for the player.
+	collision_mask = 2 | 8
+
+
+func _land() -> void:
+	_thrown = false
+	collision_mask = 2
+	sprite.rotation = 0.0
+	var timer := get_tree().create_timer(pickup_delay, true, false, true)
+	timer.timeout.connect(func(): _armed = true)
 
 
 func _apply_icon() -> void:
@@ -46,6 +88,16 @@ func _apply_icon() -> void:
 
 
 func _on_body_entered(body: Node2D) -> void:
+	if _thrown:
+		# A flying weapon hits each enemy once, then passes on.
+		if body.is_in_group(&"enemy") and not _thrown_hit.has(body.get_instance_id()):
+			_thrown_hit[body.get_instance_id()] = true
+			var hurtbox := body.get_node_or_null("Hurtbox") as Hurtbox
+			if hurtbox != null:
+				var info := DamageInfo.create(thrown_damage, global_position, 160.0, &"thrown_weapon")
+				info.knockback_direction = _thrown_dir
+				hurtbox.receive_hit(info)
+		return
 	if not _armed or not (body is Player):
 		return
 	var player := body as Player

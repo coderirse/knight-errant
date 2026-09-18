@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/placeholder/gun_pistol.png" id="1_7166j"]
+[ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="2_gfvgh"]
+
+[resource]
+script = ExtResource("2_gfvgh")
+id = &"ricochet"
+display_name = "Nail Ricochet"
+icon = ExtResource("1_7166j")
+fire_rate = 6.0
+spread_degrees = 6.0
+projectile_speed = 340.0
+knockback = 60.0
+ammo_capacity = 24
+bounce_count = 2
+bullet_tint = Color(0.6, 1, 0.7, 1)
+bullet_scale = 0.9

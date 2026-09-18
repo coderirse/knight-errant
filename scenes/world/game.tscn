@@ -3,14 +3,14 @@
 [ext_resource type="Script" path="res://scripts/world/game.gd" id="1_hqfqh"]
 [ext_resource type="Script" path="res://scripts/world/camera_rig.gd" id="2_3iwug"]
 
-[node name="Game" type="Node2D" unique_id=812139391]
+[node name="Game" type="Node2D" unique_id=1456777949]
 script = ExtResource("1_hqfqh")
 
-[node name="LevelHolder" type="Node2D" parent="." unique_id=1348295943]
+[node name="LevelHolder" type="Node2D" parent="." unique_id=450062317]
 y_sort_enabled = true
 
-[node name="CameraRig" type="Camera2D" parent="." unique_id=101750370]
+[node name="CameraRig" type="Camera2D" parent="." unique_id=1780134221]
 script = ExtResource("2_3iwug")
 
-[node name="Ambience" type="CanvasModulate" parent="." unique_id=210796081]
+[node name="Ambience" type="CanvasModulate" parent="." unique_id=24954207]
 color = Color(0.74, 0.76, 0.88, 1)

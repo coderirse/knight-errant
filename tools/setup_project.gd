@@ -30,6 +30,8 @@ const KEY_ACTIONS := {
 	"fire": [KEY_J],
 	"interact": [KEY_E],
 	"swap_weapon": [KEY_Q, KEY_TAB],
+	"reload": [KEY_R],
+	"throw_weapon": [KEY_G],
 	"debug_overlay": [KEY_F3],
 	"debug_shapes": [KEY_F4],
 	"debug_god": [KEY_F7],

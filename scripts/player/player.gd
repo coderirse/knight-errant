@@ -158,6 +158,14 @@ func _tick_move(delta: float) -> void:
 	if Input.is_action_just_pressed(&"swap_weapon"):
 		swap_weapon()
 
+	if Input.is_action_just_pressed(&"reload"):
+		var reloading_weapon := current_weapon()
+		if reloading_weapon != null:
+			reloading_weapon.start_reload()
+
+	if Input.is_action_just_pressed(&"throw_weapon"):
+		throw_current_weapon()
+
 
 func _tick_dodge(delta: float) -> void:
 	_dodge_time_left = maxf(_dodge_time_left - delta, 0.0)
@@ -250,6 +258,36 @@ func swap_weapon() -> void:
 		return
 	weapon_index = (weapon_index + 1) % weapons.size()
 	weapon_swapped.emit(current_weapon())
+
+
+## Hurls the equipped weapon: it flies as a damaging pickup and lands wherever
+## it stops, so throwing is both an attack and a way to put a gun somewhere on
+## purpose. The slot empties — an empty hand cannot fire until something is
+## picked back up, which is the price of the throw.
+func throw_current_weapon() -> WeaponPickup:
+	var weapon := current_weapon()
+	if weapon == null:
+		return null
+	var id: StringName = weapon.data.id
+	weapons.remove_at(weapon_index)
+	weapon.queue_free()
+	if weapons.is_empty():
+		weapon_index = 0
+	else:
+		weapon_index = clampi(weapon_index, 0, weapons.size() - 1)
+	weapon_swapped.emit(current_weapon())
+
+	var packed := load("res://scenes/world/weapon_pickup.tscn") as PackedScene
+	if packed == null:
+		return null
+	var drop := packed.instantiate() as WeaponPickup
+	drop.weapon_id = id
+	var holder := get_parent()
+	if holder == null:
+		return null
+	holder.add_child(drop)
+	drop.launch(aim_direction, global_position + aim_direction * 12.0)
+	return drop
 
 
 ## Picks up a weapon. If both slots are full the current one is dropped, which is

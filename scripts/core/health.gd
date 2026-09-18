@@ -80,18 +80,25 @@ func apply_damage(info: DamageInfo) -> bool:
 	# Partial regen progress dies with the quiet period; otherwise a hit taken
 	# just before the next point would be paid for by the timer it already ran.
 	_regen_progress = 0.0
-	var remaining := info.amount
+	# Damage flavour decides how fast each layer melts (DamageTypes). Overflow
+	# carries to the next layer in BASE units, the way GunfireDungeon's
+	# DamageManager does it: (layer_damage - layer_pool) / layer_multiplier.
+	# With every multiplier at 1 (physical) this is exactly the old behaviour.
 	var absorbed := false
-
+	var overflow := float(info.amount)
 	if armor > 0:
-		var soaked := mini(armor, remaining)
-		armor -= soaked
-		remaining -= soaked
+		var armor_multiplier := DamageTypes.armor_multiplier(info.type)
+		var armor_damage := float(info.amount) * armor_multiplier
+		var armor_before := armor
+		var soaked := mini(armor_before, roundi(armor_damage))
+		armor = armor_before - soaked
 		absorbed = true
 		armor_changed.emit(armor, maximum_armor)
+		overflow = maxf(0.0, (armor_damage - float(armor_before)) / armor_multiplier)
 
-	if remaining > 0:
-		current = maxi(current - remaining, 0)
+	if overflow > 0.0:
+		var health_damage := maxi(1, roundi(overflow * DamageTypes.health_multiplier(info.type)))
+		current = maxi(current - health_damage, 0)
 		changed.emit(current, maximum)
 
 	damaged.emit(info.amount, absorbed)

@@ -702,7 +702,42 @@ func _run() -> void:
 	_check(RunState.gold > 0, "the loop earned gold (bosses pay out)")
 	_check(RunState.floor == 4, "three floors cleared without a restart")
 
-	print("\n== 23. cleanup ==")
+	print("\n== 23. reload and thrown weapons in a live run ==")
+	# The run §22 left behind (floor 4, player armed) is the cheapest honest
+	# context: a magazine and a throw behave differently with a level, a HUD
+	# and a projectile container actually present.
+	var live_player := _game.player
+	_check(live_player != null and live_player.current_weapon() != null,
+		"the loop left an armed player behind")
+	if live_player != null and live_player.current_weapon() != null:
+		var live_weapon := live_player.current_weapon()
+		live_weapon.ammo_left = 1
+		_check(live_weapon.try_fire(Vector2.RIGHT), "the last round in the magazine fires")
+		_check(live_weapon.ammo_left == 0, "the magazine is now empty")
+		live_weapon.start_reload()
+		_check(live_weapon.reloading and not live_weapon.can_fire(),
+			"a manual reload blocks firing mid-run")
+		var reload_wait := 0
+		while live_weapon.reloading and reload_wait < 300:
+			await get_tree().process_frame
+			reload_wait += 1
+		_check(live_weapon.ammo_left == live_weapon.data.ammo_capacity,
+			"the reload finished mid-run (%d rounds)" % live_weapon.ammo_left)
+
+		var slots_before := live_player.weapons.size()
+		var thrown := live_player.throw_current_weapon()
+		_check(thrown != null, "throwing spawns a flying pickup")
+		_check(live_player.weapons.size() == slots_before - 1,
+			"the thrown weapon leaves its slot (%d -> %d)" % [slots_before, live_player.weapons.size()])
+		if thrown != null:
+			_check(thrown.get("_thrown"), "the pickup is in flight, not loot yet")
+			var land_wait := 0
+			while thrown.get("_thrown") and land_wait < 300:
+				await get_tree().process_frame
+				land_wait += 1
+			_check(not thrown.get("_thrown"), "the thrown weapon lands and becomes loot")
+
+	print("\n== 24. cleanup ==")
 	TuningPanel.set("_open", false)
 	GameState.reset_meta()
 	RunState.end_run(false)

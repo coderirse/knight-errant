@@ -12,3 +12,7 @@ recovery = 0.02
 spread_degrees = 3.0
 projectile_speed = 320.0
 knockback = 90.0
+ammo_capacity = 12
+reload_time = 1.1
+scatter_final_degrees = 12.0
+crit_rate = 0.1

@@ -414,4 +414,48 @@ $GODOT --headless --path . --quit-after 300 res://tools/_probe.tscn
 | 2026-09-18 | **里程碑 4：Q2.2 布局重构**：5×5 网格、入口在正中、出口在边缘、主干战斗房数量成为硬约束（2 / BOSS 层 3）。修 `test_run` 小节编号重复（两个 §12，顺延后全文引用同步）。新增 §20 四项断言（走出来的最短路线而非 `_path`），测试 145 → **149** 项。过程中踩到并记下两条：主干自触会开出绕过战斗的捷径门（去掉规则后 30 种子中 6 个中招）、`Array.shuffle()` 吃全局随机破坏可复现性（§11 当场抓到） |
 | 2026-09-18 | **里程碑 5：小地图（§2.2 #1 收尾）**：左上角画整层房间图 + 门连线 + 当前房/出口标记，`Level` 新增 `room_changed` 信号与 `current_room()` / `neighbors_of()` 访问器。中心入口让方向不再自明，这条把它补上——刻意不用箭头，以免把选择权收回去。`test_run` 新增 §21 五项断言（含"过一道门高亮真的跟着走"），测试 149 → **154** 项 |
 | 2026-09-18 | **里程碑 6：M2 完整循环（BOSS + 每层收尾战）**：出口房从"偶数层 BOSS / 奇数层自动清空的宝箱房"改为**每层一场 BOSS 战**——旧规则下奇数层进房就白过一层。新增 `Boss`（大体型、两阶段：半血前慢速追踪 + 环形弹幕，半血后加速 + 瞄准三连发；血量 `base + per_floor × (层-1)` 成长；全部数值 `@export` 进 F2 调参台）。踩到并记下一条：**父节点 `_ready` 里改 `Health.maximum` 不影响已按旧值填充的 `current`**，必须 `set_maximum(v, true)`。`test_run` 新增 §22（真实入口驱动清房→BOSS→过层 ×3，28 项断言，cleanup 顺延为 §23），测试 154 → **182** 项。宝箱换枪保持在分支宝箱房不变 |
+| 2026-09-18 | **里程碑 8：战斗深度（GunfireDungeon 复刻第 1 批，§8）**：弹匣+装填（备弹无限、auto_reload）、连打变宽的散射曲线（停火回收）、伤害类型表 `DamageTypes`（物理/火/爆/穿，对盾与血各算乘数，溢出按源项目公式`(层伤-层池)/层乘数` 折回基础值传下一层——物理型与旧算法逐点一致）、暴击（射手 roll、子弹携带）、子弹变体（弹墙用射线法线反射 / 消失时范围伤害 / 消失时分裂，命中消耗只爆不裂）、扔枪（飞行拾取伤敌、落地成 loot）。WEAPONS 表新增 launcher/splitter/ricochet 三把演示变体。输入新增 R 装填 / G 扔枪。实测两条：同帧连发被 cooldown 挡是设计（测试用 `set("_cooldown_left", 0)` 打爆发）、`Projectile._split` 在测试场景里找不到 projectile_container 会静默不分裂——已补 current_scene 兜底（与 Weapon 同款）。test_gameplay 新增 §10 二十项、test_run 新增 §23 九项（cleanup 顺延 §24），测试 182 → **211** 项 |
 | 2026-09-18 | **里程碑 7：主菜单重排 + 第一轮素材替换**：菜单原布局 Quit 按钮压在提示文字上（按钮盒 158+86=244 > 提示 y=240），重排为 标题/金线/副标题/统计/按钮面板/提示 六块并给按钮四态 StyleBoxFlat；实测出一条 Godot 事实——plain Panel 的 stylebox content margins **不会内缩锚定子节点**，VBox FULL_RECT 会从面板底边溢出，须显式定位。素材按 open-source §0 策略引入 0x72 DungeonTileset II（CC0），保持文件名覆盖 6 张 PNG，删除占位图生成器；实测出两条：**瓦片集生成器声明的 atlas 瓦片数必须与贴图条格数一致**（4 声明 vs 3 实际 → 运行时 `no tile at (3,0)`，不报脚本报错）、**房间之间的岩体颜色 = viewport 清屏色**（引擎默认灰，改 default_clear_color 近黑）。探针截图三轮验证；测试 182 项全绿 |
+
+## 8. GunfireDungeon 复刻计划（2026-09-18 立项）
+
+参照项目：`D:\git_\GunfireDungeon`（《枪火地牢》，xlljc/GunfireDungeon）。
+
+### 8.1 源项目事实（实测，勿凭印象）
+
+- **许可 AGPL-3.0**：代码与素材都是强 copyleft。本计划**只借鉴机制设计，不抄代码不抄素材**；
+  机制与玩法设计不受版权保护，自己写实现没有许可问题。
+- **技术栈不兼容**：Godot 4.4 **mono（C#）** + .NET 9，`src/` 483 个 .cs / 8.3 万行，
+  深依赖 Ds_Ui 插件与 Excel→JSON 数据管线。本项目纯 GDScript 4.7.2 零插件，
+  所以是**重实现**，不是移植。
+- **内容量其实薄，系统面宽**：敌人 prefab 2 种 + BOSS 1、武器数据 6 条 / 场景 14、
+  被动 14 + 主动 7、手搭房间 15 间（1 个 floor group）、存档**只存设置没有元进度**。
+  最大子系统是**地图编辑器**（`src/game/ui/editor/` 101 文件 / 2.3 万行）。
+- **值得复刻的系统设计**（`resource/config/*.json` 与 `src/` 实测）：
+  1. 武器：弹匣 `AmmoCapacity` + `ReloadTime` + `AutoReload` + 装填进度条；
+     散射是**曲线**（`StartScatteringRange` → `FinalScatteringRange`，连打变大、停火回收），
+     不是固定 spread；弹药与法力（`MaxMana`/回复速度）**并存**。
+  2. 子弹：`Damage` 按**伤害类型**给值数组、`CritRate/CritBonus/CritArmorPenetration`、
+     `RepelRange` 击退、`BounceCount` 弹墙、`Penetration` 穿透、`SpeedRange/DistanceRange` 随机带。
+  3. 伤害表 `DamageConfig`：每类型对 **盾/甲/血三个乘数** + 是否可暴击 + 递减规则。
+  4. 房间池：手搭房间带 `DoorAreaInfos`（门跨度）/`Preinstall`（出生波次）/`Preview.png`，
+     生成器在无限网格上摆房间池；`AffiliationArea` 判清房；有**商店房 / 奖励房**类型。
+  5. 道具：`PropFragment` 片段组合（buff 改属性 / effect 触发器 / condition 条件），数据驱动注册。
+
+### 8.2 四批范围与顺序（用户 2026-09-18 拍板：全做，编辑器最后）
+
+| 批 | 内容 | 落在我们哪里 |
+|---|---|---|
+| **8 战斗深度** | 弹匣/装填/散射曲线、伤害类型表 + 暴击、子弹变体（弹墙/爆炸/分裂）、扔枪 | `WeaponData` / `Weapon` / `Projectile` / `DamageInfo` / 新 `DamageTypes` 表 / HUD / 输入 |
+| **9 道具与 buff** | 被动改属性 + 主动触发器，掉落接进房间循环 | 新 `ItemRegistry` + `scripts/items/`，单源表照 `GameState.UPGRADES` 的模式 |
+| **10 房间池 + 商店/奖励房** | 模板升级为带门跨度/出生波次/预览的房间池；金币在局内有处花 | `RoomTemplateLibrary` → 房间池格式；`Room.Kind` 加 SHOP |
+| **11 地图编辑器** | 游戏内房间编辑器，导出房间池格式 | 最后做；前两批落地后才有东西可编辑 |
+
+### 8.3 已定的设计取舍
+
+- **弹药与能量并存**（照源项目 Ammo+Mana）：弹匣管单把枪的节奏，共享能量池管持续火力；
+  近战两者都不耗，保底地位不变。备弹**无限**，装填只花时间。
+- **散射曲线替换固定 spread**：`spread_degrees` 退化为"起始散射"，新增终值与回收速率。
+- **伤害类型表是单源 GDScript 表**（照 `UPGRADES` 的教训，不分散）：
+  物理/火/爆/穿四型起步，每型对盾/甲/血乘数 + 可否暴击。
+- 升级方向（"复现完再谈"）**不预设**；复现完拿它缺的东西（元进度持久化、调参台、灯光）当候选。

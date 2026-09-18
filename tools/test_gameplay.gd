@@ -277,6 +277,181 @@ func _run() -> void:
 	_check(RoomTemplateLibrary.pick(Vector2i(7, 7), rng_a) == null,
 		"pick returns null for a size with no template (callers fall back)")
 
+	print("\n== 10. combat depth: magazine, scatter, types, bullet variants ==")
+	# The GunfireDungeon replication batch 1 (RESEARCH §8). Everything here is
+	# exercised through the real nodes — Weapon, Projectile, Health — because
+	# the maths living in a table is not the maths running in a fight.
+	var host := Node2D.new()
+	host.name = "CombatDepthHost"
+	add_child(host)
+	var projectile_scene := load("res://scenes/weapons/projectile.tscn") as PackedScene
+
+	# --- magazine and reload ---
+	var mag_data := WeaponData.new()
+	mag_data.ammo_capacity = 2
+	mag_data.reload_time = 0.3
+	mag_data.auto_reload = false
+	mag_data.energy_cost = 0.0
+	var mag_weapon := Weapon.new()
+	host.add_child(mag_weapon)
+	mag_weapon.setup(mag_data, null, true)
+	# Same-frame shots are cooldown-gated by design; zeroing the cooldown is
+	# how the test fires a burst without sleeping between rounds.
+	_check(mag_weapon.try_fire(Vector2.RIGHT), "the first round fires")
+	mag_weapon.set("_cooldown_left", 0.0)
+	_check(mag_weapon.try_fire(Vector2.RIGHT), "the second round fires")
+	mag_weapon.set("_cooldown_left", 0.0)
+	_check(not mag_weapon.try_fire(Vector2.RIGHT), "an empty magazine refuses")
+	mag_weapon.start_reload()
+	_check(mag_weapon.reloading, "reload starts on the key")
+	_check(not mag_weapon.can_fire(), "a reloading weapon cannot fire")
+	for i in 30:
+		await get_tree().process_frame
+	_check(mag_weapon.ammo_left == 2 and not mag_weapon.reloading,
+		"the reload refills the magazine (%d rounds)" % mag_weapon.ammo_left)
+
+	mag_weapon.ammo_left = 1
+	mag_data.auto_reload = true
+	mag_weapon.try_fire(Vector2.RIGHT)
+	_check(mag_weapon.reloading, "an emptied magazine auto-reloads")
+
+	# --- scatter curve ---
+	var scatter_data := WeaponData.new()
+	scatter_data.spread_degrees = 0.0
+	scatter_data.scatter_final_degrees = 10.0
+	scatter_data.scatter_per_shot = 5.0
+	scatter_data.scatter_recovery = 50.0
+	scatter_data.fire_rate = 100.0
+	scatter_data.energy_cost = 0.0
+	var scatter_weapon := Weapon.new()
+	host.add_child(scatter_weapon)
+	scatter_weapon.setup(scatter_data, null, true)
+	scatter_weapon.try_fire(Vector2.RIGHT)
+	scatter_weapon.set("_cooldown_left", 0.0)
+	scatter_weapon.try_fire(Vector2.RIGHT)
+	_check(is_equal_approx(scatter_weapon.scatter_current, 10.0),
+		"scatter grows to its ceiling (%.1f deg)" % scatter_weapon.scatter_current)
+	scatter_weapon.set("_cooldown_left", 0.0)
+	scatter_weapon.try_fire(Vector2.RIGHT)
+	_check(is_equal_approx(scatter_weapon.scatter_current, 10.0),
+		"scatter stops at the ceiling (%.1f deg)" % scatter_weapon.scatter_current)
+	for i in 30:
+		await get_tree().process_frame
+	_check(scatter_weapon.scatter_current < 1.0,
+		"scatter recovers once firing stops (%.1f deg)" % scatter_weapon.scatter_current)
+
+	# --- damage types against a shield ---
+	var fire_shield := Health.new()
+	fire_shield.maximum = 10
+	fire_shield.maximum_armor = 5
+	host.add_child(fire_shield)
+	var fire_hit := DamageInfo.create(4, Vector2.ZERO, 0.0, &"test")
+	fire_hit.type = &"fire"
+	fire_shield.apply_damage(fire_hit)
+	_check(fire_shield.armor == 0, "fire melts a 5-point shield in one 4-damage hit")
+	_check(fire_shield.current == 9, "the overflow still reaches health (%d)" % fire_shield.current)
+
+	var phys_shield := Health.new()
+	phys_shield.maximum = 10
+	phys_shield.maximum_armor = 5
+	host.add_child(phys_shield)
+	phys_shield.apply_damage(DamageInfo.create(4, Vector2.ZERO, 0.0, &"test"))
+	_check(phys_shield.armor == 1 and phys_shield.current == 10,
+		"physical keeps the old overflow maths (armor %d, hp %d)" % [phys_shield.armor, phys_shield.current])
+
+	# --- crit: rolled by the shooter, carried on the bullet ---
+	for stray in get_tree().current_scene.find_children("*", "Projectile", true, false):
+		stray.queue_free()
+	await get_tree().process_frame
+	var crit_data := WeaponData.new()
+	crit_data.damage = 2
+	crit_data.crit_rate = 1.0
+	crit_data.energy_cost = 0.0
+	var crit_weapon := Weapon.new()
+	host.add_child(crit_weapon)
+	crit_weapon.setup(crit_data, null, true)
+	crit_weapon.try_fire(Vector2.RIGHT)
+	var crit_bullets := get_tree().current_scene.find_children("*", "Projectile", true, false)
+	_check(crit_bullets.size() == 1, "the crit shot spawned exactly one bullet")
+	if crit_bullets.size() == 1:
+		_check(crit_bullets[0].get("damage") == 3 and crit_bullets[0].get("crit"),
+			"a crit multiplies damage (2 -> %d)" % int(crit_bullets[0].get("damage")))
+	crit_data.damage_type = &"fire"   # not critable in the table
+	crit_weapon.setup(crit_data, null, true)
+	crit_weapon.set("_cooldown_left", 0.0)
+	for stray in crit_bullets:
+		stray.queue_free()
+	await get_tree().process_frame
+	crit_weapon.try_fire(Vector2.RIGHT)
+	var fire_bullets := get_tree().current_scene.find_children("*", "Projectile", true, false)
+	if fire_bullets.size() == 1:
+		_check(fire_bullets[0].get("damage") == 2 and not fire_bullets[0].get("crit"),
+			"a non-critable type never crits")
+	else:
+		_check(false, "the non-crit shot spawned one bullet (%d)" % fire_bullets.size())
+
+	# --- wall bounce, against a real static wall ---
+	var wall := StaticBody2D.new()
+	wall.collision_layer = 1
+	wall.position = Vector2(200, 0)
+	var wall_shape := CollisionShape2D.new()
+	var wall_rect := RectangleShape2D.new()
+	wall_rect.size = Vector2(16, 200)
+	wall_shape.shape = wall_rect
+	wall.add_child(wall_shape)
+	host.add_child(wall)
+	await get_tree().physics_frame
+	var bounce_bullet := projectile_scene.instantiate() as Projectile
+	host.add_child(bounce_bullet)
+	bounce_bullet.bounce_count = 1
+	bounce_bullet.speed = 300.0
+	bounce_bullet.lifetime = 2.0
+	bounce_bullet.direction = Vector2.RIGHT
+	bounce_bullet.global_position = Vector2(100, 0)
+	for i in 40:
+		await get_tree().physics_frame
+	_check(is_instance_valid(bounce_bullet), "a bouncing bullet survives the wall")
+	if is_instance_valid(bounce_bullet):
+		_check(bounce_bullet.direction.x < 0.0, "and comes back the way it came")
+		bounce_bullet.queue_free()
+
+	# --- explosion: area damage on expiry ---
+	var victim := (load("res://scenes/enemies/chaser.tscn") as PackedScene).instantiate() as Node2D
+	host.add_child(victim)
+	victim.position = Vector2(-100, 0)
+	await get_tree().physics_frame
+	var victim_health: Health = victim.get_node("Health")
+	var hp_before := victim_health.current
+	var boom := projectile_scene.instantiate() as Projectile
+	host.add_child(boom)
+	boom.explode_radius = 40.0
+	boom.explode_damage = 2
+	boom.lifetime = 0.1
+	boom.is_player_team = true
+	boom.global_position = victim.global_position + Vector2(10, 0)
+	for i in 20:
+		await get_tree().physics_frame
+	_check(victim_health.current < hp_before,
+		"an exploding bullet damages whoever stands near it (%d -> %d)" % [hp_before, victim_health.current])
+
+	# --- split: children fan out when the parent expires ---
+	for stray in get_tree().current_scene.find_children("*", "Projectile", true, false):
+		stray.queue_free()
+	await get_tree().process_frame
+	var split_bullet := projectile_scene.instantiate() as Projectile
+	host.add_child(split_bullet)
+	split_bullet.split_count = 2
+	# Children live 0.6x the parent's lifetime: the parent expires at frame 6 and
+	# its children at ~frame 10, so frame 8 is the window where exactly the two
+	# children exist.
+	split_bullet.lifetime = 0.1
+	split_bullet.global_position = Vector2(0, -100)
+	for i in 8:
+		await get_tree().physics_frame
+	var children := get_tree().current_scene.find_children("*", "Projectile", true, false)
+	_check(children.size() == 2, "an expired bullet splits into its children (%d)" % children.size())
+	host.queue_free()
+
 	print("\n== summary ==")
 	if _failures.is_empty():
 		print("ALL %d CHECKS PASSED" % _checks)

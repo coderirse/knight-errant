@@ -17,6 +17,8 @@
 | `Space` / `Shift` / 手柄 A | 翻滚闪避（带无敌帧） |
 | `Q` / `Tab` / 手柄 Y | 切换武器 |
 | `E` / 手柄 X | 交互 |
+| `R` | 装填 |
+| `G` | 扔枪（飞行中伤敌，落地成拾取） |
 
 调试与调参：`F2` 调参台 · `F3` 状态浮层 · `F4` 碰撞形状 · `F5` 恢复调参值 ·
 `F6` 转储调参结果 · `F7` 无敌 · `F9` 重建当前层 · `F10` 作弊
@@ -49,7 +51,10 @@
   远离玩家的房间自动关灯（实测这个规模下灯光不是帧率瓶颈）
 - **美术**：角色 / 敌人 / BOSS / 宝箱 / 地形来自 0x72 DungeonTileset II（CC0），
   房间之间的未开挖岩体压成近黑，火把光池贴着砖墙读得出层次
-- **自动化测试**：2 套件 182 项断言，含"跨 60 个种子验证楼层必定可通关"、
+- **战斗深度**：弹匣与装填（备弹无限）、连打变宽的散射曲线、
+  伤害类型表（物理/火/爆/穿，对盾与血各算乘数）+ 暴击、
+  子弹变体（弹墙 / 爆炸 / 分裂）、扔枪换枪
+- **自动化测试**：2 套件 211 项断言，含"跨 60 个种子验证楼层必定可通关"、
   "场景切换入口不会黑屏"、"敌人不会生在墙里"、
   "真实入口驱动清房→宝箱→BOSS→过层连打 3 层不用重启"
 
@@ -58,10 +63,10 @@
 ```bash
 GODOT=/d/Godot4/Godot_v4.7.2-stable_win64_console.exe
 
-# 核心系统测试（70 项）
+# 核心系统测试（90 项）
 $GODOT --headless --path . res://tools/test_gameplay.tscn
 
-# 整合测试：真实跑一局 + 场景切换 + 升级生效 + 调参台 + 房间模板 + 灯光 + 布局形状 + 小地图 + 三层完整循环（112 项）
+# 整合测试：真实跑一局 + 场景切换 + 升级生效 + 调参台 + 房间模板 + 灯光 + 布局形状 + 小地图 + 三层完整循环 + 战斗深度（121 项）
 $GODOT --headless --path . res://tools/test_run.tscn
 
 # 启动游戏
@@ -85,7 +90,8 @@ $GODOT --headless --path . --export-release "Windows Desktop" build/KnightErrant
 
 ```
 scripts/autoload/   GameState(永久) · RunState(单局) · SaveManager · PlayerHost · SceneRouter
-scripts/core/       DamageInfo · Hitbox · Hurtbox · Health(含护盾) · EnergyPool · Juice
+scripts/core/       DamageInfo · DamageTypes(伤害类型表) · Hitbox · Hurtbox · Health(含护盾)
+                    EnergyPool · Juice
 scripts/player/     双摇杆玩家控制器
 scripts/enemies/    追逐型 · 射击型 · BOSS（两阶段，血量随层数成长）
 scripts/weapons/    WeaponData · Weapon · Projectile · WeaponRegistry

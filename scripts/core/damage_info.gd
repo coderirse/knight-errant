@@ -6,6 +6,12 @@ extends Resource
 ## duplicated per hit and reused by projectiles / spells later on.
 
 @export var amount := 1
+## Damage flavour, looked up in [DamageTypes] for per-layer multipliers and
+## critability. Defaults to physical so existing callers keep their behaviour.
+@export var type: StringName = &"physical"
+## Resolved by the SHOOTER before the hit lands: when true, `amount` already
+## carries the crit bonus. Kept as a flag so the receiver can flash harder.
+@export var crit := false
 ## Horizontal push applied to the receiver.
 @export var knockback_force := 260.0
 ## Zero means "derive it from the relative positions at hit time".

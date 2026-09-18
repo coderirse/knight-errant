@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/placeholder/gun_shotgun.png" id="1_x75e3"]
+[ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="2_jlpok"]
+
+[resource]
+script = ExtResource("2_jlpok")
+id = &"launcher"
+display_name = "Scrap Launcher"
+icon = ExtResource("1_x75e3")
+damage = 3
+fire_rate = 0.9
+recovery = 0.2
+spread_degrees = 2.0
+projectile_speed = 220.0
+projectile_lifetime = 0.9
+knockback = 200.0
+energy_cost = 10.0
+ammo_capacity = 4
+reload_time = 2.0
+damage_type = &"explosive"
+explode_radius = 44.0
+explode_damage = 2
+bullet_tint = Color(1, 0.6, 0.3, 1)
+bullet_scale = 1.4
