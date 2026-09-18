@@ -608,7 +608,101 @@ func _run() -> void:
 		else:
 			_check(false, "the start room had no non-exit door to walk through")
 
-	print("\n== 22. cleanup ==")
+	print("\n== 22. the full loop: three floors end to end ==")
+	# M2's acceptance: from entering the game, clear rooms, grab the chest weapon,
+	# kill the floor boss, descend — three times, without a restart. This drives
+	# the real entry (SceneRouter.start_new_run) because the loop spans run state,
+	# floor generation and the Game-level advance timer; driving build_floor()
+	# directly would skip exactly the plumbing this section exists to guard.
+	PlayerHost.despawn()
+	GameState.reset_meta()
+	await SceneRouter.start_new_run(20260918)
+	await _settle(6)
+	_game = get_tree().current_scene as Game
+	_check(_game != null, "the loop test runs on a real Game scene")
+	if _game == null:
+		_finish()
+		return
+
+	# The boss volleys at the player while the test works; standing immortal keeps
+	# the assertion about the LOOP from flaking on the player's dodge timing.
+	_game.player.health.invincible = true
+
+	for floor_iteration in 3:
+		var loop_level := _game.level
+		if loop_level == null:
+			_check(false, "floor %d of the loop generated" % (floor_iteration + 1))
+			break
+		var want_floor := RunState.floor
+		var exit_index := loop_level.exit_room()
+		var exit_room := loop_level.rooms[exit_index]
+		_check(exit_room.kind == Room.Kind.BOSS,
+			"floor %d ends in a boss room" % want_floor)
+
+		# Walk the shortest door route into the boss room, the way a player would
+		# (each hop is the same call the door trigger makes).
+		var route := _shortest_route(loop_level, loop_level.current_room(), exit_index)
+		for step in range(1, route.size()):
+			loop_level.move_player_to_room(route[step], 0)
+			await _settle(1)
+		_check(loop_level.current_room() == exit_index,
+			"floor %d: the player reached the boss room" % want_floor)
+
+		var boss: Node = null
+		for child in exit_room.get_node("Actors").get_children():
+			if child is Boss:
+				boss = child
+		_check(boss != null, "floor %d spawns a boss" % want_floor)
+		if boss == null:
+			break
+
+		var boss_health: Health = boss.get_node("Health")
+		var want_hp: int = boss.get("base_health") + boss.get("health_per_floor") * (want_floor - 1)
+		_check(boss_health.maximum == want_hp,
+			"floor %d boss health scales with depth (%d, want %d)" % [want_floor, boss_health.maximum, want_hp])
+
+		var locked_while_alive := 0
+		for child in exit_room.get_children():
+			if child is RoomDoor and child.get(&"locked"):
+				locked_while_alive += 1
+		_check(locked_while_alive > 0,
+			"floor %d boss room is locked while the boss lives" % want_floor)
+
+		# Kill through the normal damage path, so the room's on_enemy_died
+		# bookkeeping is exercised rather than bypassed (same rule as §9).
+		boss_health.invincible = false
+		var lethal := DamageInfo.create(9999, Vector2.ZERO, 0.0, &"test")
+		lethal.ignores_invincibility = true
+		boss_health.apply_damage(lethal)
+		await _settle(8)
+
+		_check(exit_room.is_cleared, "floor %d: killing the boss clears the room" % want_floor)
+		var locked_after_death := 0
+		for child in exit_room.get_children():
+			if child is RoomDoor and child.get(&"locked"):
+				locked_after_death += 1
+		_check(locked_after_death == 0,
+			"floor %d: the boss room unlocks on death" % want_floor)
+
+		# Game._on_floor_completed advances RunState immediately but rebuilds the
+		# floor only after a 0.6 s timer. Wait for BOTH, or the next iteration
+		# would read the old (already cleared) level and not find a boss in it.
+		var target_floor := want_floor + 1
+		var waited := 0
+		while waited < 1200 and (RunState.floor < target_floor
+				or _game.level == null or _game.level == loop_level):
+			await get_tree().process_frame
+			waited += 1
+		_check(RunState.floor == target_floor and _game.level != null and _game.level != loop_level,
+			"floor %d: the boss's death descends to floor %d (after %d frames)" % [want_floor, target_floor, waited])
+		await _settle(4)
+
+	_check(_game.player != null and is_instance_valid(_game.player)
+		and _game.player.weapons.size() >= 1, "the player kept their weapons across all three floors")
+	_check(RunState.gold > 0, "the loop earned gold (bosses pay out)")
+	_check(RunState.floor == 4, "three floors cleared without a restart")
+
+	print("\n== 23. cleanup ==")
 	TuningPanel.set("_open", false)
 	GameState.reset_meta()
 	RunState.end_run(false)

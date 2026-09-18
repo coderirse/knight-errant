@@ -32,8 +32,10 @@
 - **武器**：6 把数据驱动武器（手枪/霰弹/冲锋枪/穿透枪/近战刀/敌人法杖），
   全局共享能量池，近战不耗能作为保底
 - **敌人**：追逐型（带分离避免堆叠）、射击型（保持距离+环绕走位+攻击前摇）
+- **BOSS**：每层出口房是一场两阶段 BOSS 战——半血前慢速追踪 + 环形弹幕，
+  半血后加速并追加瞄准三连发；血量随层数成长，击杀后开门过层
 - **关卡**：5×5 网格、**入口在正中心、出口在边缘**的程序生成楼层，四个方向都可能
-  有新房间；房间**清怪后开门**，走进出口房间推进下一层；
+  有新房间；房间**清怪后开门**，出口房是一场 BOSS 战，打赢推进下一层；
   每层保证 2~3 场必经战斗（节奏是设计出来的，不由随机数决定）
 - **小地图**：左上角画出本层房间图与门的连线，白框是你现在站的房间、金框是出口
 - **战斗**：护盾先于血量吸收伤害，脱战 3.5 秒后**按速率逐点回复**（帧率无关）、
@@ -45,8 +47,9 @@
 - **房间地形**：9 张手搭模板（固定 15/21/25 尺寸），带不变量自检
 - **氛围**：压暗环境光 + 玩家随身灯 + 每房间 2~4 个火把 + 墙体实时投影；
   远离玩家的房间自动关灯（实测这个规模下灯光不是帧率瓶颈）
-- **自动化测试**：2 套件 154 项断言，含"跨 60 个种子验证楼层必定可通关"、
-  "场景切换入口不会黑屏"、"敌人不会生在墙里"
+- **自动化测试**：2 套件 182 项断言，含"跨 60 个种子验证楼层必定可通关"、
+  "场景切换入口不会黑屏"、"敌人不会生在墙里"、
+  "真实入口驱动清房→宝箱→BOSS→过层连打 3 层不用重启"
 
 ## 常用命令
 
@@ -56,7 +59,7 @@ GODOT=/d/Godot4/Godot_v4.7.2-stable_win64_console.exe
 # 核心系统测试（70 项）
 $GODOT --headless --path . res://tools/test_gameplay.tscn
 
-# 整合测试：真实跑一局 + 场景切换 + 升级生效 + 调参台 + 房间模板 + 灯光 + 布局形状 + 小地图（84 项）
+# 整合测试：真实跑一局 + 场景切换 + 升级生效 + 调参台 + 房间模板 + 灯光 + 布局形状 + 小地图 + 三层完整循环（112 项）
 $GODOT --headless --path . res://tools/test_run.tscn
 
 # 启动游戏
@@ -83,7 +86,7 @@ $GODOT --headless --path . --export-release "Windows Desktop" build/KnightErrant
 scripts/autoload/   GameState(永久) · RunState(单局) · SaveManager · PlayerHost · SceneRouter
 scripts/core/       DamageInfo · Hitbox · Hurtbox · Health(含护盾) · EnergyPool · Juice
 scripts/player/     双摇杆玩家控制器
-scripts/enemies/    追逐型 · 射击型
+scripts/enemies/    追逐型 · 射击型 · BOSS（两阶段，血量随层数成长）
 scripts/weapons/    WeaponData · Weapon · Projectile · WeaponRegistry
 scripts/world/      Game · Level · Room · RoomTemplate + RoomTemplateLibrary · RoomDoor
                     DungeonLight · Chest · WeaponPickup · Pickup · CameraRig

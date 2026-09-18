@@ -22,6 +22,7 @@ func _initialize() -> void:
 	_write("player.png", _make_player())
 	_write("chaser.png", _make_chaser())
 	_write("shooter.png", _make_shooter())
+	_write("boss.png", _make_boss())
 	_write("bullet.png", _make_bullet())
 	_write("enemy_bullet.png", _make_enemy_bullet())
 	_write("tile_ground.png", _make_tiles())
@@ -145,6 +146,31 @@ func _make_shooter() -> Image:
 	_disc(image, 11.4, 8.6, 1.0, eye)
 	_rect(image, 14, 11, 6, 3, gun)           # gun sticking out to the right
 	_rect(image, 14, 10, 2, 5, gun.darkened(0.2))
+	_outline(image, Color(0.10, 0.11, 0.16))
+	return image
+
+
+## The floor boss: a horned bulk, twice a chaser's size (the scene scales it 2x
+## on top of this 24x24 canvas, so it reads ~48 px against a 20 px chaser).
+func _make_boss() -> Image:
+	var image := _canvas(24, 24)
+	var body := Color(0.62, 0.16, 0.22)
+	var body_dark := Color(0.40, 0.09, 0.15)
+	var eye := Color(1.0, 0.75, 0.25)
+	var horn := Color(0.85, 0.80, 0.68)
+
+	# Horns first so the body overlaps their roots.
+	_rect(image, 3, 2, 3, 6, horn)
+	_rect(image, 18, 2, 3, 6, horn)
+	_disc(image, 12, 13.0, 9.2, body_dark)
+	_disc(image, 12, 12.0, 7.8, body)
+	_disc(image, 8.6, 10.0, 2.2, eye)
+	_disc(image, 15.4, 10.0, 2.2, eye)
+	_disc(image, 8.6, 10.0, 1.0, Color(0.1, 0.1, 0.1))
+	_disc(image, 15.4, 10.0, 1.0, Color(0.1, 0.1, 0.1))
+	# A wide mouth line, so it reads angrier than the chaser at 2x scale.
+	_rect(image, 8, 16, 8, 2, body_dark)
+	_rect(image, 0, 20, 24, 4, Color(0, 0, 0, 0))   # keep the bottom clean
 	_outline(image, Color(0.10, 0.11, 0.16))
 	return image
 

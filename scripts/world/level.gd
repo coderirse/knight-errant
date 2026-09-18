@@ -306,7 +306,9 @@ func _kind_for(index: int) -> Room.Kind:
 	if index == _path[0]:
 		return Room.Kind.START
 	if index == _exit_room_index:
-		return Room.Kind.BOSS if floor_number % 2 == 0 else Room.Kind.TREASURE
+		# Every floor ends in a boss fight (M2): the old parity split let odd
+		# floors finish by walking into an auto-cleared treasure room.
+		return Room.Kind.BOSS
 	if not _path.has(index):
 		return Room.Kind.TREASURE
 	return Room.Kind.COMBAT

@@ -309,6 +309,9 @@ func _spawn_encounter() -> void:
 		# is not the same as completing a floor.
 		_mark_cleared()
 		return
+	if kind == Kind.BOSS:
+		_spawn_boss()
+		return
 	if kind == Kind.START:
 		_mark_cleared()
 		return
@@ -323,11 +326,28 @@ func _spawn_encounter() -> void:
 
 
 func _default_budget() -> int:
-	match kind:
-		Kind.BOSS:
-			return 1
-		_:
-			return 3 + RunState.floor
+	return 3 + RunState.floor
+
+
+## The exit room holds one boss, not a budget of regular enemies. It is the last
+## fight of the floor, so it is authored as its own scene rather than rolled from
+## the encounter table.
+func _spawn_boss() -> void:
+	var packed := load("res://scenes/enemies/boss.tscn") as PackedScene
+	if packed == null:
+		push_error("Room: cannot load res://scenes/enemies/boss.tscn")
+		return
+	var boss := packed.instantiate() as Node2D
+	boss.name = "Boss"
+	# Same rule as the chest: the geometric centre can be a pillar on ring or
+	# plus layouts, so use the walkable tile nearest the middle.
+	if template != null:
+		boss.position = _tile_center(template.center_walkable())
+	else:
+		boss.position = interior_rect().get_center()
+	boss.set("room", self)
+	_actors.add_child(boss)
+	enemies_alive += 1
 
 
 func _spawn_enemy(index: int) -> void:

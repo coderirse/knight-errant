@@ -15,8 +15,9 @@ Godot 4.7.2 的**俯视角双摇杆 Roguelike**（元气骑士式）原型，目
 - 纯 GDScript，**无第三方插件**
 - 渲染 Forward+，逻辑分辨率 480×270、整数缩放
 - 场景与武器资源由 `tools/` 下的生成器脚本产出，**不是手写 `.tscn`**
-- 当前进度：M0 骨架完成，里程碑 1（修 P0/P2 + 清死代码 + 调参台）与
-  里程碑 2（房间模板库）已完成，Windows 导出链路已打通
+- 当前进度：M0 骨架完成，里程碑 1~5（修 P0/P2 + 调参台、模板库、2D 灯光、
+  5×5 中心入口、小地图）与 M2 完整循环（每层 BOSS 战）已完成，
+  Windows 导出链路已打通
   （见 [docs/roadmap.md §10](docs/roadmap.md) · [§13](docs/roadmap.md)）。
   **逐条交付进度只记在 [RESEARCH.md §7](RESEARCH.md)，本节不维护第二份清单。**
 
@@ -38,8 +39,9 @@ GODOT=/d/Godot4/Godot_v4.7.2-stable_win64_console.exe
 # 核心系统（70 项）：伤害/护盾/能量/武器/存档/房间模板目录
 $GODOT --headless --path . res://tools/test_gameplay.tscn
 
-# 整合（84 项）：真实生成楼层、真物理打死敌人、清房间、过门、换层、
-#                场景切换入口、永久升级生效、调参台、模板空间校验
+# 整合（112 项）：真实生成楼层、真物理打死敌人、清房间、过门、换层、
+#                场景切换入口、永久升级生效、调参台、模板空间校验、灯光、
+#                布局形状、小地图、三层完整循环（清房→BOSS→过层）
 $GODOT --headless --path . res://tools/test_run.tscn
 ```
 
@@ -55,7 +57,7 @@ $GODOT --headless --path . res://tools/test_run.tscn
 所以**必须读 stdout**——理由不是"断言失败也返回 0"（那不对），
 而是**脚本中途崩溃会返回 0**。P0 那种故障恰好属于后一类：既不报红、也不改退出码。
 
-两套全绿 = **154 项**，与 README 一致。数量对不上说明测试被改动了。
+两套全绿 = **182 项**，与 README 一致。数量对不上说明测试被改动了。
 
 ### 生成器与执行顺序
 
@@ -245,7 +247,7 @@ Godot **按文件顺序应用属性**：`script =` 必须写在自定义属性�
 |---|---|
 | 玩家手感（移速/加速/翻滚帧数） | [scripts/player/player.gd](scripts/player/player.gd) 顶部 `@export` |
 | 武器数值 | [tools/build_scenes.gd](tools/build_scenes.gd) 顶部 `WEAPONS` 表 → 重跑生成器 |
-| 敌人行为 | [scripts/enemies/chaser.gd](scripts/enemies/chaser.gd) · `shooter.gd` |
+| 敌人行为 | [scripts/enemies/chaser.gd](scripts/enemies/chaser.gd) · `shooter.gd` · `boss.gd`（两阶段，数值全走 F2） |
 | 关卡布局 / 房间数 / 分支 | `Level._plan_layout()` |
 | 房间地形（模板） | `scripts/world/room_template_library.gd` 的 `TEMPLATES` 表 |
 | 地形贴图逻辑 / 坐标约定 | `Room._build_tiles()`，改前读技术路线 §7.2 |
@@ -461,8 +463,8 @@ per second"，`scenes/player/player.tscn:40` 把它设成 `1.0`，`test_gameplay
   中文文件名，**未被修改的文件会彻底躲过 `git status`**，改了也不知道；
   改名之后还会留下一条假的 delete。本机已另外设 `core.fsmonitor=true` 兜底，
   但新加文件请直接用 ASCII 名，别依赖它。
-- 提交前过第 8 节清单。两套测试共 154 项，最后一行必须分别是 `ALL 70 CHECKS PASSED`（核心）与
-  `ALL 84 CHECKS PASSED`（整合）。
+- [ ] 提交前过第 8 节清单。两套测试共 182 项，最后一行必须分别是 `ALL 70 CHECKS PASSED`（核心）与
+  `ALL 112 CHECKS PASSED`（整合）。
 
 ---
 
@@ -483,7 +485,7 @@ per second"，`scenes/player/player.tscn:40` 把它设成 `1.0`，`test_gameplay
 
 ## 8. 提交前清单
 
-- [ ] `test_gameplay` 与 `test_run` 都输出 `ALL NN CHECKS PASSED`（共 154 项）
+- [ ] `test_gameplay` 与 `test_run` 都输出 `ALL NN CHECKS PASSED`（共 182 项）
 - [ ] 碰过 autoload 列表 → 已重跑 `setup_project.gd`
 - [ ] 新增了 `class_name` 脚本 → 已跑一次 `--editor --quit` 注册它（见 §1）
 - [ ] 碰过 `WEAPONS` 表或场景生成器 → 已重跑 `build_scenes.gd`
