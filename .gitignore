@@ -11,3 +11,6 @@
 export_credentials.cfg
 .DS_Store
 Thumbs.db
+
+# 个人工作记录，不进库（docs/ 下正式文档一律用 ASCII 文件名，见 AGENTS.md §6）
+docs/接手_zcode_*.md
