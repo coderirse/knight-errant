@@ -526,7 +526,49 @@ func _run() -> void:
 	else:
 		_check(false, "test could not tell which room the player is standing in")
 
-	print("\n== 20. cleanup ==")
+	print("\n== 20. floors are entered in the middle and exit at the edge ==")
+	# The properties the 5x5 centre-out layout exists to guarantee. Measured on the
+	# route a player would actually walk (fewest doors), not on the chain the
+	# generator planned — a shortcut the generator did not intend is exactly the
+	# bug worth catching here. Both floor parities are covered because BOSS exits
+	# require one more fight.
+	var shape_seeds := 30
+	var off_centre := 0
+	var exit_inside := 0
+	var thin_route := 0
+	var too_few := 0
+	var route_total := 0
+	for seed_value in shape_seeds:
+		var want_floor := 1 + (seed_value % 2)
+		await _game.build_floor(want_floor, 7100 + seed_value)
+		await _settle(1)
+		var shaped := _game.level
+		var required := 3 if want_floor % 2 == 0 else 2
+		if shaped.cell_of(0) != Vector2i(Level.GRID_CENTRE, Level.GRID_CENTRE):
+			off_centre += 1
+		var exit_index := shaped.exit_room()
+		if not _on_border(shaped.cell_of(exit_index)):
+			exit_inside += 1
+		var route := _shortest_route(shaped, 0, exit_index)
+		route_total += route.size()
+		var fights := 0
+		for index in route.slice(1, maxi(route.size() - 1, 1)):
+			if shaped.rooms[index].kind == Room.Kind.COMBAT:
+				fights += 1
+		if fights < required:
+			thin_route += 1
+		if shaped.rooms.size() < 5:
+			too_few += 1
+
+	_check(off_centre == 0, "the entrance is always the centre cell (%d off)" % off_centre)
+	_check(exit_inside == 0, "the exit is always on the grid border (%d landed inside)" % exit_inside)
+	_check(thin_route == 0,
+		"the walked route always has its guaranteed fights (%d short)" % thin_route)
+	_check(too_few == 0, "every floor has at least 5 rooms (%d short)" % too_few)
+	print("     (entrance-to-exit route averages %.1f rooms over %d seeds)"
+		% [float(route_total) / float(shape_seeds), shape_seeds])
+
+	print("\n== 21. cleanup ==")
 	TuningPanel.set("_open", false)
 	GameState.reset_meta()
 	RunState.end_run(false)
@@ -653,9 +695,8 @@ func _describe_layout(level: Level) -> String:
 	return "|".join(parts)
 
 
-## Number of rooms reachable from room 0 by walking doors, used to prove a floor
-## can actually be completed.
-func _reachable_count(level: Level) -> int:
+## Room index -> the indices it has a door to.
+func _door_adjacency(level: Level) -> Dictionary:
 	var adjacency: Dictionary = {}
 	for room in level.rooms:
 		adjacency[room.room_index] = []
@@ -663,7 +704,13 @@ func _reachable_count(level: Level) -> int:
 		for child in room.get_children():
 			if child is RoomDoor:
 				adjacency[room.room_index].append(int(child.get(&"target_room")))
+	return adjacency
 
+
+## How many rooms are reachable from room 0 by walking doors — proves a floor can
+## actually be completed.
+func _reachable_count(level: Level) -> int:
+	var adjacency := _door_adjacency(level)
 	var seen := {0: true}
 	var queue: Array[int] = [0]
 	while not queue.is_empty():
@@ -673,6 +720,39 @@ func _reachable_count(level: Level) -> int:
 				seen[neighbour] = true
 				queue.append(neighbour)
 	return seen.size()
+
+
+## Fewest-door route between two rooms as a list of room indices, empty if there
+## is none. This is what the player would actually walk, so it is the route the
+## "this floor guarantees N fights" property has to be measured on — not whatever
+## chain the generator planned.
+func _shortest_route(level: Level, from_index: int, to_index: int) -> Array[int]:
+	var adjacency := _door_adjacency(level)
+	var previous := {from_index: -1}
+	var queue: Array[int] = [from_index]
+	while not queue.is_empty():
+		var current: int = queue.pop_front()
+		if current == to_index:
+			break
+		for neighbour in adjacency.get(current, []):
+			if previous.has(neighbour):
+				continue
+			previous[neighbour] = current
+			queue.append(neighbour)
+
+	if not previous.has(to_index):
+		return []
+	var route: Array[int] = [to_index]
+	var cursor := to_index
+	while cursor != from_index:
+		cursor = int(previous[cursor])
+		route.push_front(cursor)
+	return route
+
+
+func _on_border(cell: Vector2i) -> bool:
+	return cell.x == 0 or cell.y == 0 \
+		or cell.x == Level.GRID_SIDE - 1 or cell.y == Level.GRID_SIDE - 1
 
 
 func _finish() -> void:

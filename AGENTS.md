@@ -38,7 +38,7 @@ GODOT=/d/Godot4/Godot_v4.7.2-stable_win64_console.exe
 # 核心系统（70 项）：伤害/护盾/能量/武器/存档/房间模板目录
 $GODOT --headless --path . res://tools/test_gameplay.tscn
 
-# 整合（75 项）：真实生成楼层、真物理打死敌人、清房间、过门、换层、
+# 整合（79 项）：真实生成楼层、真物理打死敌人、清房间、过门、换层、
 #                场景切换入口、永久升级生效、调参台、模板空间校验
 $GODOT --headless --path . res://tools/test_run.tscn
 ```
@@ -55,7 +55,7 @@ $GODOT --headless --path . res://tools/test_run.tscn
 所以**必须读 stdout**——理由不是"断言失败也返回 0"（那不对），
 而是**脚本中途崩溃会返回 0**。P0 那种故障恰好属于后一类：既不报红、也不改退出码。
 
-两套全绿 = **145 项**，与 README 一致。数量对不上说明测试被改动了。
+两套全绿 = **149 项**，与 README 一致。数量对不上说明测试被改动了。
 
 ### 生成器与执行顺序
 
@@ -222,6 +222,20 @@ Godot **按文件顺序应用属性**：`script =` 必须写在自定义属性�
 
 用 `Room._spawn_tiles()`（来自模板的可走格，距边界 ≥2 格以避开门口）。
 由 `test_run` §18 跨 24 个种子守着。
+
+### 2.12 门图必须是一棵树：主干不许自触，分支只许挂一个格子
+
+门开在**所有**正交相邻的房间之间，不只是主干步之间。所以：
+
+- 主干拐回来贴到自己早先的格子 → 那里多开一道门 → **一条绕过必经战斗的捷径**，
+  楼层悄悄变短变简单，不报错（实测去掉规则后 30 个种子里 6 个中招）。
+- 分支若与第二个格子相邻 → 它成了通路而不是死路，同样绕路。
+
+`_free_neighbours()` 要求候选格只与前驱相邻，`_plan_layout()` 的分支要求只与母房间
+相邻。两条一起才让"`required_enemies` 个战斗房"这句话真的成立。
+
+由 `test_run` §20 守着，且它断言的是**用门 BFS 走出来的最短路线**而不是 `_path`
+的长度——测错对象等于没测。
 
 ---
 
@@ -446,8 +460,8 @@ per second"，`scenes/player/player.tscn:40` 把它设成 `1.0`，`test_gameplay
   中文文件名，**未被修改的文件会彻底躲过 `git status`**，改了也不知道；
   改名之后还会留下一条假的 delete。本机已另外设 `core.fsmonitor=true` 兜底，
   但新加文件请直接用 ASCII 名，别依赖它。
-- 提交前过第 8 节清单。两套测试共 145 项，最后一行必须分别是 `ALL 70 CHECKS PASSED`（核心）与
-  `ALL 75 CHECKS PASSED`（整合）。
+- 提交前过第 8 节清单。两套测试共 149 项，最后一行必须分别是 `ALL 70 CHECKS PASSED`（核心）与
+  `ALL 79 CHECKS PASSED`（整合）。
 
 ---
 
@@ -468,7 +482,7 @@ per second"，`scenes/player/player.tscn:40` 把它设成 `1.0`，`test_gameplay
 
 ## 8. 提交前清单
 
-- [ ] `test_gameplay` 与 `test_run` 都输出 `ALL NN CHECKS PASSED`（共 145 项）
+- [ ] `test_gameplay` 与 `test_run` 都输出 `ALL NN CHECKS PASSED`（共 149 项）
 - [ ] 碰过 autoload 列表 → 已重跑 `setup_project.gd`
 - [ ] 新增了 `class_name` 脚本 → 已跑一次 `--editor --quit` 注册它（见 §1）
 - [ ] 碰过 `WEAPONS` 表或场景生成器 → 已重跑 `build_scenes.gd`
@@ -481,5 +495,7 @@ per second"，`scenes/player/player.tscn:40` 把它设成 `1.0`，`test_gameplay
 - [ ] 新增测试写在 `.tscn` 里，不是 `--script`
 - [ ] 新增"跨系统流程" → `test_run` 里有一条驱动**真实入口**的断言（见 §2 教训）
 - [ ] 碰过房间/门/瓦片坐标 → `test_run` §17「stamped tiles match their template」通过
+- [ ] 碰过关卡布局 → `test_run` §20 通过（入口在正中 / 出口在边缘 / 必经战斗数）
+- [ ] 在种子化生成器里打乱数组 → 用吃 `rng` 的 Fisher-Yates，不是 `Array.shuffle()`
 - [ ] 新增模板 → 外圈留空、内部连通（`test_gameplay` §9 会校验）
 - [ ] 本文档第 6 节已同步

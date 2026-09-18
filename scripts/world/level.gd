@@ -4,10 +4,11 @@ extends Node2D
 ## Builds and drives one floor of the dungeon: a small graph of rooms laid out in
 ## a grid, with doorways carved between neighbours.
 ##
-## Layout rule (deliberately simple and readable): rooms sit on a grid, the player
-## enters at the left, and one room on the right is the exit. Extra rooms branch
-## off the main path as optional treasure. Every room on the guaranteed path from
-## entry to exit is COMBAT or BOSS, so the run cannot be walked through empty.
+## Layout rule: rooms sit on a 5x5 grid, the player enters in the **centre**, and
+## the exit is on the border. Extra rooms dangle off it as optional treasure.
+## Every room between entry and exit is COMBAT or BOSS, so the run cannot be
+## walked through empty — see _plan_layout for the two properties that are
+## enforced by construction rather than hoped for.
 ##
 ## The whole floor is one scene, not one scene per room. Rooms are 480x270-ish
 ## arenas; keeping them all loaded means walking through a door is a camera move,
@@ -24,6 +25,10 @@ const TILE := 16
 const DEFAULT_INTERIOR := 21
 ## Gap of solid rock between adjacent rooms, in tiles.
 const ROOM_GAP := 2
+## The floor is laid out on a 5x5 cell grid with the entrance in the middle, the
+## way Soul Knight does it, so any of four directions can hold the next room.
+const GRID_SIDE := 5
+const GRID_CENTRE := 2
 ## What everything looks like where no light reaches. Dark and a little blue, so
 ## the warm torches read as light rather than merely as "brighter". Tuned from a
 ## screenshot: at 0.30 the floor was bright enough that the torch pools vanished.
@@ -70,57 +75,43 @@ func generate(floor_num: int, level_seed: int) -> void:
 
 # --- layout ----------------------------------------------------------------
 
-## Lays out a left-to-right chain with occasional branches, then assigns a kind
-## to each room. The chain is the guaranteed path; branches are optional.
+## Lays out a 5x5 grid with the entrance in the **centre** and the exit on the
+## border, then hangs optional treasure rooms off it as dead ends.
 ##
-## Chain steps are restricted to orthogonal grid moves. A diagonal step would put
-## two consecutive path rooms at grid positions that share no wall, and since
-## doors can only be carved between physical neighbours, the path would silently
-## be broken — the player reaches a dead end and the floor cannot be finished.
-## Rooms still *look* scattered because the side-steps alternate the row.
+## Why centre-out rather than the old left-to-right chain: a chain tells you
+## exactly one thing (forward) and every door you did not take is invisible.
+## Starting in the middle means four directions are all plausible, which is what
+## makes a Soul Knight floor feel like a place rather than a corridor.
 ##
-## Planning works entirely on the local `cells` array. Reading `_grid` here would
-## see the *previous* floor's cells (it is rebuilt only at the end).
+## Two properties are enforced by construction, not hoped for:
+##
+## 1. Path steps are orthogonal. A diagonal pair shares no wall, so no door can be
+##    carved and the floor silently becomes unwinnable (roadmap §7: 141 of 200
+##    seeds were, before this was pinned down).
+## 2. The route from the entrance to the exit passes at least `required_enemies`
+##    combat rooms, so the floor's effort budget is designed rather than rolled.
+##    That holds because the door graph is a **tree**: path steps may not touch any
+##    earlier cell of the path (an extra door there would be a shortcut past the
+##    fights), and branches are only accepted when they touch nothing but their
+##    parent. So the unique route start→exit *is* the chain.
 func _plan_layout(rng: RandomNumberGenerator) -> void:
-	var chain_length := clampi(3 + floor_number, 3, 6)
+	var required_enemies := 3 if floor_number % 2 == 0 else 2
+	var cells := _grow_path(rng, required_enemies)
+	var chain_length := cells.size()
+
+	# Branches: optional rewards, one room deep, dangling from an existing cell.
 	var branches := clampi(1 + floor_number / 2, 1, 3)
-
-	var cells: Array[Vector2i] = [Vector2i.ZERO]
-	var cursor := Vector2i.ZERO
-
-	for step_index in chain_length - 1:
-		# Step right most of the time, sometimes up or down; never left, so
-		# progress is monotonic and the player can tell which way is forward.
-		var options: Array[Vector2i] = [
-			Vector2i(1, 0), Vector2i(1, 0), Vector2i(1, 0),
-			Vector2i(0, -1), Vector2i(0, 1),
-		]
-		var next := cursor + options[rng.randi_range(0, options.size() - 1)]
-
-		# Keep the layout in positive space so world coordinates stay simple.
-		if next.y < 0:
-			for index in cells.size():
-				cells[index] += Vector2i(0, 1)
-			cursor += Vector2i(0, 1)
-			next += Vector2i(0, 1)
-
-		if cells.has(next):
-			next = cursor + Vector2i(1, 0)
-			while cells.has(next):
-				next += Vector2i(1, 0)
-		cells.append(next)
-		cursor = next
-
-	# Branches: hang optional rooms off existing ones. Orthogonal only, so the
-	# branch always shares a wall with its parent and a door can be carved.
 	for branch_index in branches:
 		var base: Vector2i = cells[rng.randi_range(0, cells.size() - 1)]
-		var offsets: Array[Vector2i] = [Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 0)]
-		var candidate := base + offsets[rng.randi_range(0, offsets.size() - 1)]
-		if candidate.y < 0:
-			candidate = base + Vector2i(0, 1)
-		if not cells.has(candidate):
+		for offset in _shuffled([Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 0), Vector2i(-1, 0)], rng):
+			var candidate: Vector2i = base + offset
+			if not _in_grid(candidate) or cells.has(candidate):
+				continue
+			# Anything that touches a second cell could shortcut the fights.
+			if not _only_touches(candidate, cells, base):
+				continue
 			cells.append(candidate)
+			break
 
 	_path.clear()
 	_grid.clear()
@@ -129,12 +120,93 @@ func _plan_layout(rng: RandomNumberGenerator) -> void:
 		var cell := cells[i]
 		_grid[cell] = i
 		_cell_of[i] = cell
-		# The chain is the first `chain_length` entries; everything after is a
-		# branch, so the path to the exit is exactly the chain.
+		# The path is the first `chain_length` entries; everything after is a
+		# branch, so the route to the exit is exactly the chain.
 		if i < chain_length:
 			_path.append(i)
 
 	_exit_room_index = _path[_path.size() - 1]
+
+
+## Randomised depth-first search for an orthogonal path from the centre cell to a
+## border cell with at least `required_enemies` rooms in between.
+##
+## Exhaustive rather than "walk and retry": a path of the required length always
+## exists on a 5x5 grid, so there is no unbounded retry loop that could hang the
+## generator — and the search is deterministic for a given seed.
+func _grow_path(rng: RandomNumberGenerator, required_enemies: int) -> Array[Vector2i]:
+	var found: Array[Vector2i] = []
+	var path: Array[Vector2i] = [Vector2i(GRID_CENTRE, GRID_CENTRE)]
+	_search_path(path, required_enemies, found, rng)
+	return found
+
+
+func _search_path(path: Array[Vector2i], required: int, found: Array[Vector2i],
+		rng: RandomNumberGenerator) -> bool:
+	if not found.is_empty():
+		return true
+	var cursor: Vector2i = path[path.size() - 1]
+	if path.size() >= required + 2 and _is_border(cursor):
+		found.append_array(path)
+		return true
+	# Cap the sprawl: a floor longer than this is a chore, not a dungeon.
+	if path.size() > required + 4:
+		return false
+
+	for option in _shuffled(_free_neighbours(cursor, path), rng):
+		path.append(option)
+		if _search_path(path, required, found, rng):
+			return true
+		path.pop_back()
+	return false
+
+
+## Orthogonal in-grid neighbours of `cell` that the path may extend into.
+##
+## Stricter than "not used yet": the candidate must also touch **no other** cell of
+## the path. Doors are carved between every pair of adjacent rooms, so a path that
+## runs alongside itself gets an extra door there — and that door is a shortcut
+## past the fights the path exists to guarantee. With this rule the door graph is
+## a tree: the chain, plus leaves that only ever dangle.
+func _free_neighbours(cell: Vector2i, path: Array[Vector2i]) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var candidate: Vector2i = cell + offset
+		if _in_grid(candidate) and not path.has(candidate) and _only_touches(candidate, path, cell):
+			result.append(candidate)
+	return result
+
+
+func _in_grid(cell: Vector2i) -> bool:
+	return cell.x >= 0 and cell.y >= 0 and cell.x < GRID_SIDE and cell.y < GRID_SIDE
+
+
+func _is_border(cell: Vector2i) -> bool:
+	return cell.x == 0 or cell.y == 0 or cell.x == GRID_SIDE - 1 or cell.y == GRID_SIDE - 1
+
+
+## True when `cell` is orthogonally adjacent to no occupied cell except `parent`.
+func _only_touches(cell: Vector2i, cells: Array[Vector2i], parent: Vector2i) -> bool:
+	for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var neighbour: Vector2i = cell + offset
+		if neighbour != parent and cells.has(neighbour):
+			return false
+	return true
+
+
+## A shuffled copy, drawn from the *seeded* rng.
+##
+## Deliberately not `Array.shuffle()`: that consumes the engine's global RNG, so a
+## floor built with it is not reproducible from `level_seed` — which quietly
+## breaks "same seed, same floor" (test_run §11 catches exactly this).
+func _shuffled(source: Array[Vector2i], rng: RandomNumberGenerator) -> Array[Vector2i]:
+	var copy := source.duplicate()
+	for i in range(copy.size() - 1, 0, -1):
+		var j := rng.randi_range(0, i)
+		var swap: Vector2i = copy[i]
+		copy[i] = copy[j]
+		copy[j] = swap
+	return copy
 
 
 # --- instantiation ---------------------------------------------------------
@@ -380,6 +452,16 @@ func _try_complete_floor(room: Room) -> void:
 		return
 	_completed = true
 	floor_completed.emit(floor_number)
+
+
+## Read-only view of the grid placement, for tests and (later) a minimap.
+func cell_of(index: int) -> Vector2i:
+	return _cell_of.get(index, Vector2i(-1, -1))
+
+
+## Which room finishes the floor.
+func exit_room() -> int:
+	return _exit_room_index
 
 
 func rooms_remaining() -> int:
