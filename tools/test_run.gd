@@ -464,7 +464,69 @@ func _run() -> void:
 	_check(chests_in_solid == 0,
 		"no chest spawned inside a wall across %d seeds (%d bad)" % [spawn_seeds, chests_in_solid])
 
-	print("\n== 18. cleanup ==")
+	print("\n== 18. dungeon lighting is built and scoped ==")
+	var lit_level := _game.level
+	var lamp_carrier := get_tree().get_first_node_in_group(&"player")
+	_check(lit_level.get_node_or_null("Ambience") is CanvasModulate,
+		"the floor darkens the ambient")
+	var lamp := lamp_carrier.get_node_or_null("Light") as PointLight2D
+	_check(lamp != null and lamp.texture != null,
+		"the player carries a lamp with a generated falloff texture")
+
+	var equipped := 0
+	var merged := 0
+	var current_room: Room = null
+	for room in lit_level.rooms:
+		if Rect2(room.position, room.world_size()).has_point(lamp_carrier.global_position):
+			current_room = room
+		var holder := room.get_node_or_null("Lighting")
+		var torches := 0
+		var occluders := 0
+		if holder != null:
+			for child in holder.get_children():
+				if child is PointLight2D:
+					torches += 1
+				elif child is LightOccluder2D:
+					occluders += 1
+		if torches > 0 and occluders > 0:
+			equipped += 1
+		# Merging solid cells into rectangles must beat the trivial one-node-per-cell
+		# layout, which for a walled room costs about four times its perimeter.
+		if occluders > 0 and occluders < room.interior.x + room.interior.y:
+			merged += 1
+	_check(equipped == lit_level.rooms.size(),
+		"every room has torches and wall shadows (%d/%d)" % [equipped, lit_level.rooms.size()])
+	_check(merged == lit_level.rooms.size(),
+		"occluders are merged into runs, not one per tile (%d/%d)" % [merged, lit_level.rooms.size()])
+
+	# Only the room the player is in, plus those joined to it by a door, keep their
+	# lights on. Everything else sits off-camera behind solid rock, so this is the
+	# entire cost saving and it must not leak.
+	if current_room != null:
+		var scope := {current_room.room_index: true}
+		for index in lit_level.call("_neighbor_rooms", current_room.room_index):
+			scope[index] = true
+		var wrong := 0
+		var distant := 0
+		for room in lit_level.rooms:
+			var holder := room.get_node_or_null("Lighting")
+			if holder == null:
+				continue
+			var any_on := false
+			for child in holder.get_children():
+				if child is PointLight2D and (child as PointLight2D).enabled:
+					any_on = true
+			if any_on != scope.has(room.room_index):
+				wrong += 1
+			if not scope.has(room.room_index):
+				distant += 1
+		_check(wrong == 0,
+			"lights are on for exactly the current room and its doors (%d wrong, %d gated off)"
+			% [wrong, distant])
+	else:
+		_check(false, "test could not tell which room the player is standing in")
+
+	print("\n== 19. cleanup ==")
 	TuningPanel.set("_open", false)
 	GameState.reset_meta()
 	RunState.end_run(false)

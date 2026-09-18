@@ -40,7 +40,9 @@
 - **存档**：3 槽位 JSON，原子写入 + 备份回滚
 - **调参台**：游戏内实时调手感、武器与护盾数值，转储后可固化进代码
 - **房间地形**：9 张手搭模板（固定 15/21/25 尺寸），带不变量自检
-- **自动化测试**：2 套件 140 项断言，含"跨 60 个种子验证楼层必定可通关"、
+- **氛围**：压暗环境光 + 玩家随身灯 + 每房间 2~4 个火把 + 墙体实时投影；
+  远离玩家的房间自动关灯（实测这个规模下灯光不是帧率瓶颈）
+- **自动化测试**：2 套件 145 项断言，含"跨 60 个种子验证楼层必定可通关"、
   "场景切换入口不会黑屏"、"敌人不会生在墙里"
 
 ## 常用命令
@@ -51,7 +53,7 @@ GODOT=/d/Godot4/Godot_v4.7.2-stable_win64_console.exe
 # 核心系统测试（70 项）
 $GODOT --headless --path . res://tools/test_gameplay.tscn
 
-# 整合测试：真实跑一局 + 场景切换 + 升级生效 + 调参台 + 房间模板（70 项）
+# 整合测试：真实跑一局 + 场景切换 + 升级生效 + 调参台 + 房间模板 + 灯光（75 项）
 $GODOT --headless --path . res://tools/test_run.tscn
 
 # 启动游戏
@@ -81,7 +83,7 @@ scripts/player/     双摇杆玩家控制器
 scripts/enemies/    追逐型 · 射击型
 scripts/weapons/    WeaponData · Weapon · Projectile · WeaponRegistry
 scripts/world/      Game · Level · Room · RoomTemplate + RoomTemplateLibrary · RoomDoor
-                    Chest · WeaponPickup · Pickup · CameraRig
+                    DungeonLight · Chest · WeaponPickup · Pickup · CameraRig
 scripts/ui/         HUD · 主菜单                    （HUD 同时是 autoload）
 scripts/debug/      状态浮层 · 调参台                （两者同时是 autoload）
 resources/weapons/  6 把武器（.tres，加武器不用写代码）

@@ -35,6 +35,25 @@ enum State { MOVE, DODGE, DEAD }
 ## How far from the body the weapon pivots. Keeps the muzzle clear of the sprite.
 @export var weapon_mount_offset := 6.0
 
+## Warm, so the player reads as the same kind of light source as the torches.
+const LIGHT_TINT := Color(1.0, 0.88, 0.66)
+
+@export_group("Light")
+## Both setters write straight through to the light rather than being copied each
+## frame: a value the panel changes with nothing consuming it is exactly the bug
+## class documented in roadmap §11.0-C.
+@export var light_energy := 1.1:
+	set(value):
+		light_energy = value
+		if _light != null:
+			_light.energy = value
+## Diameter multiplier on the falloff texture, so 1.0 is 128 logical pixels across.
+@export var light_scale := 1.7:
+	set(value):
+		light_scale = value
+		if _light != null:
+			_light.texture_scale = value
+
 signal state_changed(state: State)
 signal died
 signal weapon_swapped(weapon: Weapon)
@@ -58,6 +77,8 @@ var _dodge_time_left := 0.0
 var _dodge_cooldown_left := 0.0
 var _dodge_direction := Vector2.RIGHT
 var _receiving_health_sync := false
+## Built in code, not the scene: its texture is generated at runtime.
+var _light: PointLight2D
 
 
 func _ready() -> void:
@@ -78,6 +99,20 @@ func _ready() -> void:
 	_equip_starting_weapons()
 	_set_state(State.MOVE)
 	_update_visual()
+	_build_light()
+
+
+## The player carries the dungeon's main light source, so the room reads outward
+## from them and the aim direction stays legible away from the torches.
+func _build_light() -> void:
+	_light = PointLight2D.new()
+	_light.name = "Light"
+	_light.texture = DungeonLight.falloff()
+	_light.color = LIGHT_TINT
+	_light.energy = light_energy
+	_light.texture_scale = light_scale
+	_light.shadow_enabled = true
+	add_child(_light)
 
 
 func _physics_process(delta: float) -> void:

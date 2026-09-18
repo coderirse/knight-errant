@@ -24,6 +24,10 @@ const TILE := 16
 const DEFAULT_INTERIOR := 21
 ## Gap of solid rock between adjacent rooms, in tiles.
 const ROOM_GAP := 2
+## What everything looks like where no light reaches. Dark and a little blue, so
+## the warm torches read as light rather than merely as "brighter". Tuned from a
+## screenshot: at 0.30 the floor was bright enough that the torch pools vanished.
+const AMBIENT_COLOR := Color(0.14, 0.16, 0.24)
 
 @export var tile_set: TileSet
 
@@ -43,6 +47,10 @@ var _completed := false
 ## Which room the player is standing in, tracked so floor completion can require
 ## the player to actually reach the exit.
 var _current_room_index := -1
+var _ambience: CanvasModulate
+## Which room the light scope was last applied for; _process only acts on change.
+## -2 means "never", so the first update always runs.
+var _lit_room := -2
 
 
 func generate(floor_num: int, level_seed: int) -> void:
@@ -55,6 +63,9 @@ func generate(floor_num: int, level_seed: int) -> void:
 	_instantiate_rooms()
 	_carve_doors()
 	_place_player()
+	_ensure_ambience()
+	# After _place_player: the scope depends on which room the player landed in.
+	_apply_light_scope()
 
 
 # --- layout ----------------------------------------------------------------
@@ -281,6 +292,49 @@ func _place_player() -> void:
 	_player_spawn = start.position + Vector2(rect.position.x + 28.0, rect.get_center().y)
 	if player != null and is_instance_valid(player):
 		player.global_position = _player_spawn
+
+
+# --- ambience ---------------------------------------------------------------
+
+## One CanvasModulate darkens everything the lights do not reach. It is a child of
+## the Level so it dies with the floor instead of leaking into the main menu, and
+## the HUD / overlay / tuning panel are CanvasLayers, so they stay readable.
+func _ensure_ambience() -> void:
+	if _ambience != null and is_instance_valid(_ambience):
+		return
+	_ambience = CanvasModulate.new()
+	_ambience.name = "Ambience"
+	_ambience.color = AMBIENT_COLOR
+	add_child(_ambience)
+
+
+## Rooms the player cannot see do not need their lights rasterised. Only the
+## current room and those joined to it by a door stay lit, so the per-frame cost
+## tracks how many rooms are *adjacent* to the player rather than how big the
+## floor is — which matters because a whole floor is one live scene (see §2.2).
+func _apply_light_scope() -> void:
+	_lit_room = _current_room_index
+	var scope := {_current_room_index: true}
+	for index in _neighbor_rooms(_current_room_index):
+		scope[index] = true
+	for room in rooms:
+		room.set_lights_active(scope.has(room.room_index))
+
+
+func _process(_delta: float) -> void:
+	if _lit_room != _current_room_index:
+		_apply_light_scope()
+
+
+func _neighbor_rooms(index: int) -> Array[int]:
+	var result: Array[int] = []
+	if not _cell_of.has(index):
+		return result
+	var cell: Vector2i = _cell_of[index]
+	for step in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		if _grid.has(cell + step):
+			result.append(int(_grid[cell + step]))
+	return result
 
 
 # --- runtime ---------------------------------------------------------------

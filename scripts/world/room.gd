@@ -23,6 +23,13 @@ const WALL_TILE := Vector2i(2, 0)
 ## Fraction of plain floor tiles that get the variant texture, purely so large
 ## open areas do not read as a uniform grid.
 const FLOOR_VARIANT_CHANCE := 0.14
+## Torch tint. Warm pools of light against a cold ambient is the whole look.
+const TORCH_COLOR := Color(1.0, 0.72, 0.38)
+const TORCH_ENERGY := 1.9
+## Pool diameter multiplier on the falloff texture (128 px), so 1.5 is ~190 px.
+## Measured from a screenshot: 2.0 with one torch in a small room spread into a
+## wash instead of reading as distinct sconces.
+const TORCH_SCALE := 1.5
 
 enum Kind { START, COMBAT, TREASURE, BOSS }
 
@@ -47,6 +54,10 @@ var _cleared_emitted := false
 ## Cached walkable spawn tiles, built on first use. The template never changes
 ## after setup(), so this does not need invalidating.
 var _spawn_cache: Array[Vector2i] = []
+## Torches built by _build_lighting(), kept so Level can switch them off at a
+## distance. Rooms start lit: one that never receives an update must not be dark.
+var _lights: Array[PointLight2D] = []
+var _lights_active := true
 
 
 func setup(index: int, seed_value: int, room_kind: Kind, tile_set: TileSet, size := Vector2i(20, 12)) -> void:
@@ -63,6 +74,7 @@ func _ready() -> void:
 	add_to_group(&"room")
 	_ensure_structure()
 	_build_tiles()
+	_build_lighting()
 	_spawn_encounter()
 
 
@@ -151,6 +163,137 @@ func _build_tiles() -> void:
 
 			var variant := FLOOR_VARIANT_TILE if _rng.randf() < FLOOR_VARIANT_CHANCE else FLOOR_TILE
 			_tile_layer.set_cell(pos, 0, variant)
+
+
+# --- lighting ---------------------------------------------------------------
+
+## Torches and wall shadows for this room.
+##
+## Every room on a floor is instantiated at once (one scene per floor), so these
+## lights would all be rasterising every frame otherwise — Level gates them by
+## proximity with set_lights_active().
+func _build_lighting() -> void:
+	var holder := Node2D.new()
+	holder.name = "Lighting"
+	add_child(holder)
+
+	for i in _torch_count():
+		var light := PointLight2D.new()
+		light.name = "Torch%d" % i
+		light.position = _torch_position(i)
+		light.texture = DungeonLight.falloff()
+		light.color = TORCH_COLOR
+		light.energy = TORCH_ENERGY
+		light.texture_scale = TORCH_SCALE
+		light.shadow_enabled = true
+		holder.add_child(light)
+		_lights.append(light)
+
+	# Godot 4.7 gives TileMapLayer no per-tile occluder support at all (verified
+	# by probe: no occluders_enabled, no set_cell_occluders_enabled), so shadows
+	# need real nodes. One per solid cell would be ~60 in a large room; merging
+	# runs into rectangles brings a walled room down to a handful.
+	var rects := _solid_rects()
+	for i in rects.size():
+		holder.add_child(_make_occluder(rects[i], i))
+
+
+## Doorways are not gaps here: Level._connect only places a trigger and never
+## erases the wall tile, and passing through is a teleport. The wall ring really
+## is continuous, so light not leaking between rooms is the honest result.
+func _make_occluder(rect: Rect2i, index: int) -> LightOccluder2D:
+	var polygon := OccluderPolygon2D.new()
+	var near := Vector2(rect.position.x * TILE, rect.position.y * TILE)
+	var far := near + Vector2(rect.size.x * TILE, rect.size.y * TILE)
+	polygon.polygon = PackedVector2Array([near, Vector2(far.x, near.y), far, Vector2(near.x, far.y)])
+	polygon.closed = true
+
+	var occluder := LightOccluder2D.new()
+	occluder.name = "Wall%d" % index
+	occluder.occluder = polygon
+	return occluder
+
+
+func set_lights_active(active: bool) -> void:
+	if active == _lights_active:
+		return
+	_lights_active = active
+	for light in _lights:
+		if is_instance_valid(light):
+			light.enabled = active
+
+
+## Bigger rooms need more sources or their far corners stay black. Two is the
+## floor even for a small room: a single torch left the opposite half unlit.
+func _torch_count() -> int:
+	if interior.x >= 25:
+		return 4
+	if interior.x >= 21:
+		return 3
+	return 2
+
+
+## Torch `index` lands on the walkable tile closest to that corner of the room, so
+## the pools hug the walls like sconces rather than piling up in the middle.
+func _torch_position(index: int) -> Vector2:
+	var tiles := _spawn_tiles()
+	if tiles.is_empty():
+		return interior_rect().get_center()
+
+	var corners := [
+		Vector2i.ZERO,
+		Vector2i(interior.x - 1, interior.y - 1),
+		Vector2i(interior.x - 1, 0),
+		Vector2i(0, interior.y - 1),
+	]
+	var anchor: Vector2i = corners[index % corners.size()]
+	var best: Vector2i = tiles[0]
+	var best_distance := 1 << 40
+	for tile in tiles:
+		var distance := (tile - anchor).length_squared()
+		if distance < best_distance:
+			best_distance = distance
+			best = tile
+	return _tile_center(best)
+
+
+func _is_wall_cell(cell: Vector2i) -> bool:
+	return _tile_layer.get_cell_atlas_coords(cell) == WALL_TILE
+
+
+## Every solid tile, as few rectangles as possible: horizontal runs per row, then
+## a run whose span matches the open one above it grows downward into it.
+func _solid_rects() -> Array[Rect2i]:
+	var span := interior + Vector2i(2, 2)
+	var rows: Array = []
+	for y in span.y:
+		var runs: Array[Rect2i] = []
+		var x := 0
+		while x < span.x:
+			if not _is_wall_cell(Vector2i(x, y)):
+				x += 1
+				continue
+			var start := x
+			while x < span.x and _is_wall_cell(Vector2i(x, y)):
+				x += 1
+			runs.append(Rect2i(start, y, x - start, 1))
+		rows.append(runs)
+
+	var merged: Array[Rect2i] = []
+	for runs in rows:
+		for run in runs:
+			var grown := false
+			for i in merged.size():
+				var previous: Rect2i = merged[i]
+				if previous.position.x == run.position.x and previous.size.x == run.size.x \
+						and previous.end.y == run.position.y:
+					merged[i] = Rect2i(previous.position,
+						Vector2i(previous.size.x, previous.size.y + 1))
+					grown = true
+					break
+			if not grown:
+				merged.append(run)
+	return merged
 
 
 # --- encounter -------------------------------------------------------------

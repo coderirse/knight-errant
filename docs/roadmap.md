@@ -2,7 +2,7 @@
 
 > 目标平台：Windows 11 原生 exe · 引擎：Godot 4.7.2 stable · 美术：优先开源资源
 > **本文档对应仓库里已经跑通的代码**，不是纸上规划。所有关键结论都有
-> `tools/test_*.gd` 的自动化测试背书（两套共 140 项断言，全绿）。
+> `tools/test_*.gd` 的自动化测试背书（两套共 145 项断言，全绿）。
 
 ---
 
@@ -64,7 +64,8 @@ knight-errant/
 │  ├─ enemies/    chaser.gd · shooter.gd
 │  ├─ weapons/    weapon_data.gd · weapon.gd · projectile.gd · weapon_registry.gd
 │  ├─ world/      game.gd · level.gd · room.gd · room_template.gd · room_template_library.gd
-│  │              room_door.gd · chest.gd · weapon_pickup.gd · pickup.gd · camera_rig.gd
+│  │              room_door.gd · dungeon_light.gd · chest.gd · weapon_pickup.gd
+│  │              pickup.gd · camera_rig.gd
 │  ├─ ui/         hud.gd · main_menu.gd
 │  └─ debug/      debug_overlay.gd · tuning_panel.gd
 └─ tools/         setup_project · build_scenes · generate_placeholder_art · test_gameplay · test_run
@@ -292,7 +293,7 @@ scripts/world/room_template_library.gd  目录：9 张模板 + 按尺寸挑选
 
 | 阶段 | 目标 | 验收 |
 |---|---|---|
-| **M0 骨架** ✅ | 双摇杆、武器、敌人、程序生成、HUD、存档、测试 | `test_gameplay` + `test_run` 全绿（交付时 96 项；当前 140 项） |
+| **M0 骨架** ✅ | 双摇杆、武器、敌人、程序生成、HUD、存档、测试 | `test_gameplay` + `test_run` 全绿（交付时 96 项；当前 145 项） |
 | **M1 手感** | 只调玩家/武器参数，不加内容 | 拿手枪连打 10 分钟不烦躁；翻滚能稳定躲弹幕 |
 | **M2 一层的完整循环** | 出生→清房间→宝箱换枪→BOSS→下一层 | 从进游戏到打完 3 层不用重启 |
 | **M3 内容** | 敌人 6~8 种、BOSS 3 个、武器 15 把、5 层 | 每层有新敌人组合，武器有取舍 |
@@ -308,11 +309,22 @@ scripts/world/room_template_library.gd  目录：9 张模板 + 按尺寸挑选
 > [RESEARCH.md §1 与 §7](../RESEARCH.md)。**不要在这里再抄一份进度**，
 > 那正是 §11.0-B 说的"定义分散两地必然分叉"。
 
-### 氛围提示（比换素材性价比高）
+### 氛围（已做，2026-09-18）
 
-俯视角地牢的"高级感"主要来自灯光比对，不是素材精度：
-`CanvasModulate` 压暗环境 + 玩家/子弹带 `PointLight2D` 自发光 +
-墙体 `LightOccluder2D` 投影。用现在的占位图也能出效果，**建议 M2 就做**。
+俯视角地牢的"高级感"主要来自**灯光对比**，不是素材精度。已落地：
+
+| 件 | 位置 | 值 |
+|---|---|---|
+| `CanvasModulate` 压暗全局 | `Level/Ambience`，一层一个，随层释放 | `(0.14, 0.16, 0.24)` |
+| 玩家随身灯 | `Player._build_light()`，`light_energy` / `light_scale` 是 `@export` + setter，F2 可直接调 | 1.1 / 1.7 |
+| 每房间火把 | `Room/Lighting`，按尺寸 2 / 3 / 4 个，落在最靠近四角的可走格 | `1.9` 能量、暖橙 |
+| 墙体投影 | 同 `Lighting` 持有者，合并后的矩形各一个节点 | 见下 |
+
+两个**实测**结论记在 [RESEARCH.md §3.11](../RESEARCH.md)：Godot 4.7 的
+`TileMapLayer` **完全没有 per-tile 遮挡物**，只能自己发 `LightOccluder2D` 节点，
+所以做了"横条合并成矩形"（一层 5 房共 **41 个**，按格生成会是 400+）；
+以及**灯光不是帧率瓶颈**（邻近开关 169.8 FPS vs 全开 166.4）。
+开关仍然保留——它让成本不随楼层大小增长，而不是为了现在的几帧。
 
 ---
 
@@ -417,12 +429,23 @@ P0 级致命故障：主菜单按「开始」黑屏卡死。因为测试只断�
     并静默丢弃用户在编辑器里手动做的绑定。清理要用**显式退役清单**。
 26. **`String(int)` 不是合法的 GDScript 构造**，数字转字符串要用格式化
     （`"%d" % value`）。
+27. **新加的 `class_name` 脚本要先让编辑器扫一遍才认得。** 实测：新增
+    `scripts/world/dungeon_light.gd`（`class_name DungeonLight`）后直接跑游戏，
+    所有引用它的脚本**一起**编译失败，报 `Identifier "DungeonLight" not declared`，
+    连带 Room 建不出来（探针打出 `rooms=0`）。跑一次 `--editor --quit` 重建
+    `.godot/global_script_class_cache.cfg` 即可。与第 19 条"PNG 要先导入"同源：
+    **`.godot/` 里的缓存是编辑器产物，命令行模式不会替你重建。**
+28. **`TileMapLayer` 没有 per-tile 遮挡物。** 4.7 实测：没有 `occluders_enabled`，
+    没有 `set_cell_occluders_enabled`，`TileSet` / `TileSetAtlasSource` 上也找不到
+    任何 occluder 接口。所以瓦片墙的投影只能自己发 `LightOccluder2D` 节点；
+    按格发一层 5 房要 400+ 个，故 `Room._solid_rects()` 先把实心格并成矩形（41 个）。
+    别照着 3.x 时代 `TileMap.occluders_enabled` 的印象写。
 
 ---
 
 ## 12. 测试与命令
 
-两套共 **140 项**，判定标准是 stdout 最后一行 `ALL NN CHECKS PASSED`。
+两套共 **145 项**，判定标准是 stdout 最后一行 `ALL NN CHECKS PASSED`。
 
 ```bash
 GODOT=/d/Godot4/Godot_v4.7.2-stable_win64_console.exe
@@ -431,7 +454,7 @@ GODOT=/d/Godot4/Godot_v4.7.2-stable_win64_console.exe
 $GODOT --headless --path . res://tools/test_gameplay.tscn
 
 # 整合：真实跑一局——生成楼层、真物理打死敌人、清房间、过门、换层、
-#       场景切换入口（P0 回归）、永久升级生效、调参台、模板空间校验（70 项）
+#       场景切换入口（P0 回归）、永久升级生效、调参台、模板空间校验、灯光（75 项）
 $GODOT --headless --path . res://tools/test_run.tscn
 
 # 启动游戏
