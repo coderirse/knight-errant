@@ -568,7 +568,47 @@ func _run() -> void:
 	print("     (entrance-to-exit route averages %.1f rooms over %d seeds)"
 		% [float(route_total) / float(shape_seeds), shape_seeds])
 
-	print("\n== 21. cleanup ==")
+	print("\n== 21. the minimap follows the floor ==")
+	# The map is the answer to "which way now?" that does not delete the choice, so
+	# it has to be wired to the live floor rather than merely exist on screen.
+	var shown := _game.level
+	var mini_map := HUD.get_node_or_null("Root/Minimap") as Minimap
+	_check(mini_map != null, "the HUD carries a minimap")
+	if mini_map != null:
+		_check(mini_map.current_index() == shown.current_room(),
+			"the minimap highlights the room the player is in (%d)" % mini_map.current_index())
+
+		var outside := 0
+		for room in shown.rooms:
+			var map_cell := shown.cell_of(room.room_index)
+			if map_cell.x < 0 or map_cell.y < 0 or map_cell.x >= Level.GRID_SIDE or map_cell.y >= Level.GRID_SIDE:
+				outside += 1
+		_check(outside == 0, "every room sits on the grid the map draws (%d off it)" % outside)
+
+		var asymmetric := 0
+		for room in shown.rooms:
+			for peer in shown.neighbors_of(room.room_index):
+				if not shown.neighbors_of(peer).has(room.room_index):
+					asymmetric += 1
+		_check(asymmetric == 0, "every link is drawn both ways (%d one-way)" % asymmetric)
+
+		# Walk through a real door and check the highlight follows by signal.
+		var start_index := shown.current_room()
+		var walk_target := -1
+		for candidate in shown.neighbors_of(start_index):
+			if candidate != shown.exit_room():
+				walk_target = candidate
+				break
+		if walk_target >= 0:
+			shown.move_player_to_room(walk_target, 0)
+			await _settle(2)
+			_check(mini_map.current_index() == walk_target,
+				"passing through a door moves the highlight (%d -> %d)"
+				% [start_index, mini_map.current_index()])
+		else:
+			_check(false, "the start room had no non-exit door to walk through")
+
+	print("\n== 22. cleanup ==")
 	TuningPanel.set("_open", false)
 	GameState.reset_meta()
 	RunState.end_run(false)

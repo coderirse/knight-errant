@@ -35,6 +35,7 @@
 - **关卡**：5×5 网格、**入口在正中心、出口在边缘**的程序生成楼层，四个方向都可能
   有新房间；房间**清怪后开门**，走进出口房间推进下一层；
   每层保证 2~3 场必经战斗（节奏是设计出来的，不由随机数决定）
+- **小地图**：左上角画出本层房间图与门的连线，白框是你现在站的房间、金框是出口
 - **战斗**：护盾先于血量吸收伤害，脱战 3.5 秒后**按速率逐点回复**（帧率无关）、
   击退、命中停顿、屏震、受击闪白
 - **元进度**：单局状态与永久成长分离，宝石可在大厅购买永久升级
@@ -44,7 +45,7 @@
 - **房间地形**：9 张手搭模板（固定 15/21/25 尺寸），带不变量自检
 - **氛围**：压暗环境光 + 玩家随身灯 + 每房间 2~4 个火把 + 墙体实时投影；
   远离玩家的房间自动关灯（实测这个规模下灯光不是帧率瓶颈）
-- **自动化测试**：2 套件 149 项断言，含"跨 60 个种子验证楼层必定可通关"、
+- **自动化测试**：2 套件 154 项断言，含"跨 60 个种子验证楼层必定可通关"、
   "场景切换入口不会黑屏"、"敌人不会生在墙里"
 
 ## 常用命令
@@ -55,7 +56,7 @@ GODOT=/d/Godot4/Godot_v4.7.2-stable_win64_console.exe
 # 核心系统测试（70 项）
 $GODOT --headless --path . res://tools/test_gameplay.tscn
 
-# 整合测试：真实跑一局 + 场景切换 + 升级生效 + 调参台 + 房间模板 + 灯光 + 布局形状（79 项）
+# 整合测试：真实跑一局 + 场景切换 + 升级生效 + 调参台 + 房间模板 + 灯光 + 布局形状 + 小地图（84 项）
 $GODOT --headless --path . res://tools/test_run.tscn
 
 # 启动游戏
@@ -86,7 +87,7 @@ scripts/enemies/    追逐型 · 射击型
 scripts/weapons/    WeaponData · Weapon · Projectile · WeaponRegistry
 scripts/world/      Game · Level · Room · RoomTemplate + RoomTemplateLibrary · RoomDoor
                     DungeonLight · Chest · WeaponPickup · Pickup · CameraRig
-scripts/ui/         HUD · 主菜单                    （HUD 同时是 autoload）
+scripts/ui/         HUD · 小地图 · 主菜单            （HUD 同时是 autoload）
 scripts/debug/      状态浮层 · 调参台                （两者同时是 autoload）
 resources/weapons/  6 把武器（.tres，加武器不用写代码）
 tools/              生成器与测试（不参与导出）

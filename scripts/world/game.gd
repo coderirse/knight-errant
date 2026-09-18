@@ -54,6 +54,9 @@ func build_floor(floor_number: int, seed_value: int) -> void:
 	_spawn_player()
 	level.player = player
 	level._place_player()
+	# After placement: the minimap reads the current room on attach, and the initial
+	# room_changed fires before anything is listening.
+	HUD.attach_level(level)
 
 	# Levels are static geometry; tell the tile map it can stop updating layer data
 	# now that the layout is final.

@@ -38,7 +38,7 @@ GODOT=/d/Godot4/Godot_v4.7.2-stable_win64_console.exe
 # 核心系统（70 项）：伤害/护盾/能量/武器/存档/房间模板目录
 $GODOT --headless --path . res://tools/test_gameplay.tscn
 
-# 整合（79 项）：真实生成楼层、真物理打死敌人、清房间、过门、换层、
+# 整合（84 项）：真实生成楼层、真物理打死敌人、清房间、过门、换层、
 #                场景切换入口、永久升级生效、调参台、模板空间校验
 $GODOT --headless --path . res://tools/test_run.tscn
 ```
@@ -55,7 +55,7 @@ $GODOT --headless --path . res://tools/test_run.tscn
 所以**必须读 stdout**——理由不是"断言失败也返回 0"（那不对），
 而是**脚本中途崩溃会返回 0**。P0 那种故障恰好属于后一类：既不报红、也不改退出码。
 
-两套全绿 = **149 项**，与 README 一致。数量对不上说明测试被改动了。
+两套全绿 = **154 项**，与 README 一致。数量对不上说明测试被改动了。
 
 ### 生成器与执行顺序
 
@@ -252,6 +252,7 @@ Godot **按文件顺序应用属性**：`script =` 必须写在自定义属性�
 | 灯光观感（暗度 / 火把 / 玩家灯） | `Level.AMBIENT_COLOR` · `Room.TORCH_*` · `Player.light_*` |
 | 墙体投影怎么来的 | `Room._solid_rects()` + `_make_occluder()`，改前读技术路线 §11.4 第 28 条 |
 | 哪些房间的灯亮着 | `Level._apply_light_scope()`（当前房间 + 有门的邻居） |
+| 小地图 / 方向提示 | [scripts/ui/minimap.gd](scripts/ui/minimap.gd)，由 `Level.room_changed` 信号驱动；房间图的唯一来源是 `Level.cell_of()` / `neighbors_of()`，别在 UI 里再算一份 |
 | 房间内容（敌人数量/种类） | `Room._spawn_encounter()` / `Room._default_budget()` |
 | 掉落 / 宝箱 | [scripts/world/chest.gd](scripts/world/chest.gd) · `pickup.gd` · `weapon_pickup.gd` |
 | HUD 布局 | [scripts/ui/hud.gd](scripts/ui/hud.gd) |
@@ -460,8 +461,8 @@ per second"，`scenes/player/player.tscn:40` 把它设成 `1.0`，`test_gameplay
   中文文件名，**未被修改的文件会彻底躲过 `git status`**，改了也不知道；
   改名之后还会留下一条假的 delete。本机已另外设 `core.fsmonitor=true` 兜底，
   但新加文件请直接用 ASCII 名，别依赖它。
-- 提交前过第 8 节清单。两套测试共 149 项，最后一行必须分别是 `ALL 70 CHECKS PASSED`（核心）与
-  `ALL 79 CHECKS PASSED`（整合）。
+- 提交前过第 8 节清单。两套测试共 154 项，最后一行必须分别是 `ALL 70 CHECKS PASSED`（核心）与
+  `ALL 84 CHECKS PASSED`（整合）。
 
 ---
 
@@ -482,7 +483,7 @@ per second"，`scenes/player/player.tscn:40` 把它设成 `1.0`，`test_gameplay
 
 ## 8. 提交前清单
 
-- [ ] `test_gameplay` 与 `test_run` 都输出 `ALL NN CHECKS PASSED`（共 149 项）
+- [ ] `test_gameplay` 与 `test_run` 都输出 `ALL NN CHECKS PASSED`（共 154 项）
 - [ ] 碰过 autoload 列表 → 已重跑 `setup_project.gd`
 - [ ] 新增了 `class_name` 脚本 → 已跑一次 `--editor --quit` 注册它（见 §1）
 - [ ] 碰过 `WEAPONS` 表或场景生成器 → 已重跑 `build_scenes.gd`

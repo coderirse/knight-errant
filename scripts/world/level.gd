@@ -18,6 +18,9 @@ extends Node2D
 
 signal floor_completed(floor_number: int)
 signal player_died
+## Emitted whenever the player's current room changes, including the initial
+## placement. The minimap listens to this rather than polling.
+signal room_changed(index: int)
 
 const ROOM_SCENE := "res://scenes/world/room.tscn"
 const TILE := 16
@@ -364,6 +367,7 @@ func _place_player() -> void:
 	_player_spawn = start.position + Vector2(rect.position.x + 28.0, rect.get_center().y)
 	if player != null and is_instance_valid(player):
 		player.global_position = _player_spawn
+	room_changed.emit(_current_room_index)
 
 
 # --- ambience ---------------------------------------------------------------
@@ -429,6 +433,7 @@ func move_player_to_room(target_index: int, entry_side: int) -> void:
 		player.velocity = Vector2.ZERO
 
 	_current_room_index = target_index
+	room_changed.emit(target_index)
 	Juice.shake_camera(2.0)
 	# Entering the exit room is what finishes the floor.
 	_try_complete_floor(target)
@@ -462,6 +467,17 @@ func cell_of(index: int) -> Vector2i:
 ## Which room finishes the floor.
 func exit_room() -> int:
 	return _exit_room_index
+
+
+## Which room the player is standing in; -1 before the first placement.
+func current_room() -> int:
+	return _current_room_index
+
+
+## Rooms reachable through a single door from `index`. Public because the minimap
+## draws the links — the graph itself keeps exactly one source of truth here.
+func neighbors_of(index: int) -> Array[int]:
+	return _neighbor_rooms(index)
 
 
 func rooms_remaining() -> int:

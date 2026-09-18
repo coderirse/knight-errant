@@ -2,7 +2,7 @@
 
 > 目标平台：Windows 11 原生 exe · 引擎：Godot 4.7.2 stable · 美术：优先开源资源
 > **本文档对应仓库里已经跑通的代码**，不是纸上规划。所有关键结论都有
-> `tools/test_*.gd` 的自动化测试背书（两套共 149 项断言，全绿）。
+> `tools/test_*.gd` 的自动化测试背书（两套共 154 项断言，全绿）。
 
 ---
 
@@ -66,7 +66,7 @@ knight-errant/
 │  ├─ world/      game.gd · level.gd · room.gd · room_template.gd · room_template_library.gd
 │  │              room_door.gd · dungeon_light.gd · chest.gd · weapon_pickup.gd
 │  │              pickup.gd · camera_rig.gd
-│  ├─ ui/         hud.gd · main_menu.gd
+│  ├─ ui/         hud.gd · minimap.gd · main_menu.gd
 │  └─ debug/      debug_overlay.gd · tuning_panel.gd
 └─ tools/         setup_project · build_scenes · generate_placeholder_art · test_gameplay · test_run
 ```
@@ -182,6 +182,10 @@ knight-errant/
 - **过关条件**：**玩家走进已清空的出口房间**才推进下一层，
   而不是"出口房间被清空"。原因见 §11.7。
 - **种子**：`(level_seed, room_index)` 决定房间内容，同种子完全可复现。
+- **方向提示 = 左上角小地图**（`scripts/ui/minimap.gd`）：画整层房间格 + 门连线，
+  白框是当前房、金框是出口。中心入口换来了空间感、也拿走了"往右就是前进"这个
+  默认答案，小地图是补这一笔的。**刻意不是箭头**——箭头会把"选哪个方向"还给系统，
+  而那次重构要的就是这个选择。由 `Level.room_changed` 信号驱动，不轮询。
 
 ### 为什么主干只走正交步（重要）
 
@@ -318,7 +322,7 @@ scripts/world/room_template_library.gd  目录：9 张模板 + 按尺寸挑选
 
 | 阶段 | 目标 | 验收 |
 |---|---|---|
-| **M0 骨架** ✅ | 双摇杆、武器、敌人、程序生成、HUD、存档、测试 | `test_gameplay` + `test_run` 全绿（交付时 96 项；当前 149 项） |
+| **M0 骨架** ✅ | 双摇杆、武器、敌人、程序生成、HUD、存档、测试 | `test_gameplay` + `test_run` 全绿（交付时 96 项；当前 154 项） |
 | **M1 手感** | 只调玩家/武器参数，不加内容 | 拿手枪连打 10 分钟不烦躁；翻滚能稳定躲弹幕 |
 | **M2 一层的完整循环** | 出生→清房间→宝箱换枪→BOSS→下一层 | 从进游戏到打完 3 层不用重启 |
 | **M3 内容** | 敌人 6~8 种、BOSS 3 个、武器 15 把、5 层 | 每层有新敌人组合，武器有取舍 |
@@ -474,7 +478,7 @@ P0 级致命故障：主菜单按「开始」黑屏卡死。因为测试只断�
 
 ## 12. 测试与命令
 
-两套共 **149 项**，判定标准是 stdout 最后一行 `ALL NN CHECKS PASSED`。
+两套共 **154 项**，判定标准是 stdout 最后一行 `ALL NN CHECKS PASSED`。
 
 ```bash
 GODOT=/d/Godot4/Godot_v4.7.2-stable_win64_console.exe
@@ -483,7 +487,7 @@ GODOT=/d/Godot4/Godot_v4.7.2-stable_win64_console.exe
 $GODOT --headless --path . res://tools/test_gameplay.tscn
 
 # 整合：真实跑一局——生成楼层、真物理打死敌人、清房间、过门、换层、
-#       场景切换入口（P0 回归）、永久升级生效、调参台、模板空间校验、灯光、布局形状（79 项）
+#       场景切换入口（P0 回归）、永久升级生效、调参台、模板空间校验、灯光、布局形状、小地图（84 项）
 $GODOT --headless --path . res://tools/test_run.tscn
 
 # 启动游戏

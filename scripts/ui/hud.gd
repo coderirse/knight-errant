@@ -28,6 +28,7 @@ var _floor_label: Label
 var _weapon_label: Label
 var _kills_label: Label
 var _banner: Label
+var _minimap: Minimap
 var _player: Player
 
 
@@ -87,6 +88,13 @@ func _build() -> void:
 	_armor_fill.color = Color(0.35, 0.70, 1.0)
 	_armor_fill.size = Vector2(BAR_WIDTH, BAR_HEIGHT)
 	_armor_bg.add_child(_armor_fill)
+
+	# --- top-left, below the bars: the floor map. A child of _root so the menu
+	#     hides it with everything else, rather than needing its own visibility rule.
+	_minimap = Minimap.new()
+	_minimap.name = "Minimap"
+	_minimap.position = Vector2(10, 44)
+	_root.add_child(_minimap)
 
 	# --- top-right: gold + floor
 	_gold_label = Label.new()
@@ -201,6 +209,13 @@ func _on_gold_changed(amount: int) -> void:
 func _on_floor_changed(floor_number: int) -> void:
 	if _floor_label != null:
 		_floor_label.text = "floor %d" % floor_number
+
+
+## Hands a floor's room graph to the minimap. Game calls this after each build.
+## The HUD still never goes looking for a Level itself — it is handed one.
+func attach_level(level: Level) -> void:
+	if _minimap != null:
+		_minimap.attach(level)
 
 
 func show_banner(text: String, duration := 2.0) -> void:
