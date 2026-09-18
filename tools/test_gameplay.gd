@@ -86,8 +86,8 @@ func _run() -> void:
 	var regen := Health.new()
 	regen.maximum = 5
 	regen.maximum_armor = 3
-	regen.armor_regen_delay = 0.15
-	regen.armor_regen_rate = 1.0
+	regen.armor_regen_delay = 1.0
+	regen.armor_regen_rate = 4.0
 	regen.invincibility_time = 0.0
 	add_child(regen)
 	await get_tree().process_frame
@@ -258,15 +258,19 @@ func _run() -> void:
 	get_tree().quit(0 if _failures.is_empty() else 1)
 
 
-## Armour regeneration is driven by _process over real time, so probe it with a
-## few timed waits rather than asserting on a single frame.
+## Armour regen runs on real time and `create_timer` overshoots by up to a whole
+## frame, so these margins are wide on purpose: the old 0.15 s delay probed at
+## 0.1 s left 0.05 s of slack, and one slow frame failed the suite at random.
 func regenerate_probe(regen: Health) -> void:
 	regen.apply_damage(DamageInfo.create(3, Vector2.ZERO, 0.0, &"test"))
 	_check(regen.armor == 0, "armour broken before regen test")
 
-	await get_tree().create_timer(0.1).timeout
+	# 0.2 s < armor_regen_delay (1.0 s): still empty.
+	await get_tree().create_timer(0.2).timeout
 	_check(regen.armor == 0, "armour does not regen before the delay elapses")
 
-	await get_tree().create_timer(0.6).timeout
+	# 1.5 s total > delay + 1/rate (1.25 s): at least one point back, and true
+	# both under the current per-frame +1 and under a fixed armor_regen_rate.
+	await get_tree().create_timer(1.3).timeout
 	_check(regen.armor >= 1, "armour regenerates after the delay (armour %d)" % regen.armor)
 	regen.queue_free()

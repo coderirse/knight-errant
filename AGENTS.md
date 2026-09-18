@@ -15,8 +15,10 @@ Godot 4.7.2 的**俯视角双摇杆 Roguelike**（元气骑士式）原型，目
 - 纯 GDScript，**无第三方插件**
 - 渲染 Forward+，逻辑分辨率 480×270、整数缩放
 - 场景与武器资源由 `tools/` 下的生成器脚本产出，**不是手写 `.tscn`**
-- 当前进度：M0 骨架完成、Windows 导出链路已打通
-  （见 [docs/roadmap.md §10](docs/roadmap.md) · [§13](docs/roadmap.md)）
+- 当前进度：M0 骨架完成，里程碑 1（修 P0/P2 + 清死代码 + 调参台）与
+  里程碑 2（房间模板库）已完成，Windows 导出链路已打通
+  （见 [docs/roadmap.md §10](docs/roadmap.md) · [§13](docs/roadmap.md)）。
+  **逐条交付进度只记在 [RESEARCH.md §7](RESEARCH.md)，本节不维护第二份清单。**
 
 ---
 
@@ -378,6 +380,25 @@ StringName/数组）会被跳过。
   不可预测，并静默丢弃用户在编辑器里手动加的绑定）。
 - `Player.acquire_into_room()`（空函数）
 - `PlayerHost.park()` / `unpark()`（无调用者）
+
+### 🔴 P4 — 未修复：`armor_regen_rate` 是死参数，护盾实际几乎瞬间回满
+
+`scripts/core/health.gd:25` 导出 `armor_regen_rate`，注释写着 "Armour points restored
+per second"，`scenes/player/player.tscn:40` 把它设成 `1.0`，`test_gameplay.gd:90`
+也设成 `1.0` —— **但全仓库没有任何一处读取它**（`grep -rn armor_regen_rate` 只有声明
+和赋值）。`Health._process()` 里是 `armor = mini(armor + 1, maximum_armor)`，
+即**安静期一过就每帧 +1**。
+
+- **实测**（探针，已删）：`delay=0, rate=1.0, 5 点护甲` → 逐帧 `[1,2,3,4,5]`，
+  **5 帧 / 0.021 秒回满，折合每秒 238 点**；注释承诺的是 5 秒。
+- **后果**：玩家实配 `armor_regen_delay = 3.5` + 5 点护甲，实战表现是"躲开 3.5 秒
+  然后护盾啪一下全回来"。护盾的设计意图是奖励**拉开距离**（见 roadmap §6），
+  现在它奖励的是"找掩体站 3.5 秒"。而且回复速度**取决于帧率**，高刷屏上更快。
+- **为什么一直没被发现**：`test_gameplay` §4 只断言 `armor >= 1`，在每帧 +1 下恒成立。
+  属于 §11.0-B 同一类："定义在 A、消费在 B"，参数被认真地设置了，就是没人用。
+- **修法**（**没做**，等用户定）：延迟达标后按 `armor_regen_rate * delta` 累积小数、
+  满 1 点才加，并让累加器独立于 `_quiet_time`。**但这会明显削弱护盾**，
+  属于 Q1 手感范畴，应当在手制定调时一起决定，不要单独顺手改。
 
 ### 其它
 

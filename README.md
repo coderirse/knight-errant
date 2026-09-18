@@ -74,17 +74,22 @@ $GODOT --headless --path . --export-release "Windows Desktop" build/KnightErrant
 ## 目录
 
 ```
-scripts/autoload/   GameState(永久) · RunState(单局) · SaveManager · PlayerHost · SceneRouter · HUD · DebugOverlay
+scripts/autoload/   GameState(永久) · RunState(单局) · SaveManager · PlayerHost · SceneRouter
 scripts/core/       DamageInfo · Hitbox · Hurtbox · Health(含护盾) · EnergyPool · Juice
 scripts/player/     双摇杆玩家控制器
 scripts/enemies/    追逐型 · 射击型
 scripts/weapons/    WeaponData · Weapon · Projectile · WeaponRegistry
-scripts/world/      Game · Level · Room · RoomDoor · Chest · WeaponPickup · Pickup · CameraRig
-scripts/ui/         HUD · 主菜单
+scripts/world/      Game · Level · Room · RoomTemplate + RoomTemplateLibrary · RoomDoor
+                    Chest · WeaponPickup · Pickup · CameraRig
+scripts/ui/         HUD · 主菜单                    （HUD 同时是 autoload）
+scripts/debug/      状态浮层 · 调参台                （两者同时是 autoload）
 resources/weapons/  6 把武器（.tres，加武器不用写代码）
 tools/              生成器与测试（不参与导出）
-docs/               技术路线与素材清单
+docs/               roadmap.md（技术路线） · open-source.md（素材与许可证）
 ```
+
+8 个 autoload 的权威清单是 `tools/setup_project.gd` 的 `AUTOLOADS`；
+`HUD` / `DebugOverlay` / `TuningPanel` 按目录习惯住在 `ui/` 和 `debug/` 下。
 
 ## 注意事项
 

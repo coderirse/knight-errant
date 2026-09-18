@@ -2,7 +2,7 @@
 
 > 目标平台：Windows 11 原生 exe · 引擎：Godot 4.7.2 stable · 美术：优先开源资源
 > **本文档对应仓库里已经跑通的代码**，不是纸上规划。所有关键结论都有
-> `tools/test_*.gd` 的自动化测试背书（96 项断言，全绿）。
+> `tools/test_*.gd` 的自动化测试背书（两套共 138 项断言，全绿）。
 
 ---
 
@@ -58,16 +58,22 @@ knight-errant/
 │  ├─ world/{game,level,room,chest,weapon_pickup}.tscn
 │  └─ ui/main_menu.tscn
 ├─ scripts/
-│  ├─ autoload/   GameState(永久) · RunState(单局) · SaveManager · PlayerHost · SceneRouter · HUD · DebugOverlay
+│  ├─ autoload/   game_state(永久) · run_state(单局) · save_manager · player_host · scene_router
 │  ├─ core/       DamageInfo · Hitbox · Hurtbox · Health(护盾) · EnergyPool · Juice
 │  ├─ player/     player.gd
 │  ├─ enemies/    chaser.gd · shooter.gd
 │  ├─ weapons/    weapon_data.gd · weapon.gd · projectile.gd · weapon_registry.gd
-│  ├─ world/      game.gd · level.gd · room.gd · room_door.gd · chest.gd · weapon_pickup.gd · pickup.gd · camera_rig.gd
+│  ├─ world/      game.gd · level.gd · room.gd · room_template.gd · room_template_library.gd
+│  │              room_door.gd · chest.gd · weapon_pickup.gd · pickup.gd · camera_rig.gd
 │  ├─ ui/         hud.gd · main_menu.gd
-│  └─ debug/      debug_overlay.gd
+│  └─ debug/      debug_overlay.gd · tuning_panel.gd
 └─ tools/         setup_project · build_scenes · generate_placeholder_art · test_gameplay · test_run
 ```
+
+**autoload 一共 8 个，权威清单是 `tools/setup_project.gd` 的 `AUTOLOADS`**（顺序即注册
+顺序，`HUD` / `DebugOverlay` / `TuningPanel` 因历史原因住在 `ui/` 和 `debug/` 下，
+不在 `autoload/` 目录里）。改这个清单**必须先跑 `setup_project.gd`**，理由见
+[AGENTS.md §4](../AGENTS.md)。
 
 ---
 
@@ -80,7 +86,7 @@ knight-errant/
       │ SaveManager JSON 原子写入 + .bak 回滚     │
       │ PlayerHost  持有玩家实例，跨层复用        │
       │ SceneRouter 大厅 ⇄ 游戏 的淡入淡出切换     │
-      │ HUD / DebugOverlay                       │
+      │ HUD / DebugOverlay / TuningPanel         │
       └─────────────────────────────────────────┘
                           ▲ 信号
       ┌───────────────────┴──────────────────────┐
@@ -286,7 +292,7 @@ scripts/world/room_template_library.gd  目录：9 张模板 + 按尺寸挑选
 
 | 阶段 | 目标 | 验收 |
 |---|---|---|
-| **M0 骨架** ✅ | 双摇杆、武器、敌人、程序生成、HUD、存档、测试 | `test_gameplay` + `test_run` 全绿（96 项） |
+| **M0 骨架** ✅ | 双摇杆、武器、敌人、程序生成、HUD、存档、测试 | `test_gameplay` + `test_run` 全绿（交付时 96 项；当前 138 项） |
 | **M1 手感** | 只调玩家/武器参数，不加内容 | 拿手枪连打 10 分钟不烦躁；翻滚能稳定躲弹幕 |
 | **M2 一层的完整循环** | 出生→清房间→宝箱换枪→BOSS→下一层 | 从进游戏到打完 3 层不用重启 |
 | **M3 内容** | 敌人 6~8 种、BOSS 3 个、武器 15 把、5 层 | 每层有新敌人组合，武器有取舍 |
@@ -296,6 +302,11 @@ scripts/world/room_template_library.gd  目录：9 张模板 + 按尺寸挑选
 
 **M1 不要跳。** 双摇杆的手感（移速/瞄准/翻滚帧数）决定了后面所有敌人该怎么设计，
 参数定不下来就铺内容，改一次要重调所有敌人。
+
+> 本表是**粗粒度阶段规划**，不跟随每次交付更新。M0 之后实际做掉的步骤
+> （里程碑 1：修 P0/P2 + 清死代码 + 调参台；里程碑 2：房间模板库）按日期记在
+> [RESEARCH.md §1 与 §7](../RESEARCH.md)。**不要在这里再抄一份进度**，
+> 那正是 §11.0-B 说的"定义分散两地必然分叉"。
 
 ### 氛围提示（比换素材性价比高）
 
@@ -377,23 +388,23 @@ P0 级致命故障：主菜单按「开始」黑屏卡死。因为测试只断�
 18. **`set_current_scene()` 要求节点是 root 的直接子节点**，否则报
     `Condition "p_scene && p_scene->get_parent() != root" is true`。
 19. **PNG 必须先让编辑器导入**（`--editor --quit`）才能被 `load()` 加载。
-17. 退出时的 `Unreferenced static string` / `RID allocations` /
+20. 退出时的 `Unreferenced static string` / `RID allocations` /
     `ObjectDB instances were leaked` 是 Godot 关闭期噪音，不是 bug。
-20. **测试里不要跨帧持有会 `queue_free` 的节点引用**——敌人死亡后会自我释放，
+21. **测试里不要跨帧持有会 `queue_free` 的节点引用**——敌人死亡后会自我释放，
     循环里持有 `Health` 引用会解引用到已释放对象。
-21. **退出码不是可靠判据**：`quit(1)` 会传出 1，但**脚本中途抛错返回 0**。
+22. **退出码不是可靠判据**：`quit(1)` 会传出 1，但**脚本中途抛错返回 0**。
     判定必须读 stdout。
-22. **探针/测试挂在 `current_scene` 槽位上会被自己释放**。
+23. **探针/测试挂在 `current_scene` 槽位上会被自己释放**。
     `change_scene_to_packed()` 释放旧的 `current_scene`，正在 `await` 的协程随之死亡
     （表现：只打印第一条日志就没了）。要先 `get_tree().current_scene = null`，
     让探针作为 root 的普通子节点存活。
-23. **`DisplayServer.clipboard_set()` 在 headless 下会报错**，
+24. **`DisplayServer.clipboard_set()` 在 headless 下会报错**，
     用 `DisplayServer.has_feature(DisplayServer.FEATURE_CLIPBOARD)` 先判断。
-24. **`ProjectSettings.get_property_list()` 里的 `input/*` 包含 90+ 个引擎内置
+25. **`ProjectSettings.get_property_list()` 里的 `input/*` 包含 90+ 个引擎内置
     `ui_*` 动作**。按"删除所有不在我表里的 input 动作"来清理，会把它们一起删掉。
     实测**无害**（引擎启动时恢复默认绑定），但会让 `project.godot` 内容不可预测，
     并静默丢弃用户在编辑器里手动做的绑定。清理要用**显式退役清单**。
-25. **`String(int)` 不是合法的 GDScript 构造**，数字转字符串要用格式化
+26. **`String(int)` 不是合法的 GDScript 构造**，数字转字符串要用格式化
     （`"%d" % value`）。
 
 ---
@@ -516,7 +527,9 @@ curl -L -o tpl.tpz "https://github.com/godotengine/godot-builds/releases/downloa
 
 ## 14. 下一步
 
-按优先级：
+> **排序的权威在 [RESEARCH.md §1](../RESEARCH.md)**（"上面的没答案之前，不要做下面的"）。
+> 本节只保留各件事**具体怎么做**的技术要点，不要在这里维护优先级——
+> 曾经两份清单并存，结果 RESEARCH 已记里程碑 2 完成，本节还把它列为待做。
 
 1. **M1 手感**：只调 `player.gd` 和 `resources/weapons/*.tres` 的数值。
    武器参数全在 `tools/build_scenes.gd` 顶部的 `WEAPONS` 表里，改完重跑生成器即可。
@@ -528,5 +541,7 @@ curl -L -o tpl.tpz "https://github.com/godotengine/godot-builds/releases/downloa
    每个阶段一个状态，攻击靠 `Hitbox.activate()/deactivate()` 打帧；
    血条走 HUD 的 banner 接口。
 5. **敌人变多后**引入 Beehave 或 LimboAI 行为树，替换手写的 `_steer()`。
-6. **房间变复杂后**把 `Room._build_tiles()` 换成手搭 TileMap 模板库，
-   生成时随机抽取模板而不是每次画矩形——这是"地牢看起来像设计过"的关键一步。
+6. ~~**房间变复杂后**把 `Room._build_tiles()` 换成手搭模板库，生成时随机抽取模板
+   而不是每次画矩形。~~ ✅ **已完成**（里程碑 2，见 §7.1）。**剩下的那半**是
+   把 ASCII 模板转成编辑器里手搭的 `.tscn`，以便做视觉调整——但**要等布局定型**，
+   现在转等于把还在改的东西固化。
